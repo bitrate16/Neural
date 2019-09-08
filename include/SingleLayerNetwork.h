@@ -17,9 +17,9 @@ namespace NNSpace {
 		std::vector<std::vector<double>> W12; // Middle -> output layer connections.
 		
 		struct {
-			int input;
-			int middle;
-			int output;
+			int input  = 0;
+			int middle = 0;
+			int output = 0;
 		} dimensions;
 		
 		SLNetwork() : Network() {};
@@ -47,12 +47,12 @@ namespace NNSpace {
 
 			for (int i = 0; i < dimensions.middle; ++i)
 				for (int j = 0; j < dimensions.output; ++j)
-					W12[i][j] = rand() * v1_MAX - 1.0;				
+					W12[i][j] = rand() * v1_MAX - 1.0;						
 		};
 		
 		// Teach using backpropagation
 		// Assume input, output_teach size match input, output layer size
-		void teach(const std::vector<double>& input, const std::vector<double>& output_teach, double rate) {
+		void train(const std::vector<double>& input, const std::vector<double>& output_teach, double rate) {
 			std::vector<double> middle_raw(dimensions.middle);
 			std::vector<double> middle(dimensions.middle);
 			std::vector<double> output_raw(dimensions.output);
@@ -64,7 +64,7 @@ namespace NNSpace {
 			
 			for (int i = 0; i < dimensions.middle; ++i) {
 				// After summary, activate
-				middle[i] = activator.process(middle_raw[i]);
+				middle[i] = activator->process(middle_raw[i]);
 				
 				for (int j = 0; j < dimensions.output; ++j) 
 					output_raw[j] += middle[i] * W12[i][j];
@@ -72,12 +72,12 @@ namespace NNSpace {
 			
 			for (int i = 0; i < dimensions.output; ++i)
 				// After summary, activate
-				output[i] = activator.process(output_raw[i]);
+				output[i] = activator->process(output_raw[i]);
 				
 			// Calculate sigma (error value) for output layer
 			std::vector<double> sigma_output(dimensions.output);
 			for (int i = 0; i < dimensions.output; ++i)
-				sigma_output[i] = (output_teach[i] - output[i]) * activator.derivative(output_raw[i]);
+				sigma_output[i] = (output_teach[i] - output[i]) * activator->derivative(output_raw[i]);
 			
 			// Calculate bias balance
 			std::vector<std::vector<double>> dW12;
@@ -100,7 +100,7 @@ namespace NNSpace {
 			dW01.resize(dimensions.input, std::vector<double>(middle));
 			for (int j = 0; j < dimensions.middle; ++j) {
 				// Multiply by activator derivative
-				sigma_middle[j] = sigma_middle_raw[j] * activator.derivative(middle_raw[j]);
+				sigma_middle[j] = sigma_middle_raw[j] * activator->derivative(middle_raw[j]);
 				
 				for (int i = 0; i < dimensions.input; ++i)
 					dW01[i][j] = rate * sigma_middle[j] * input[i];
@@ -113,7 +113,7 @@ namespace NNSpace {
 
 			for (int i = 0; i < dimensions.middle; ++i)
 				for (int j = 0; j < dimensions.output; ++j)
-					W12[i][j] = dW12[i][j];	
+					W12[i][j] += dW12[i][j];	
 		};
 		
 		// Assume input size match input layer size
@@ -127,7 +127,7 @@ namespace NNSpace {
 			
 			for (int i = 0; i < dimensions.middle; ++i) {
 				// After summary, activate
-				middle[i] = activator.process(middle[i]);
+				middle[i] = activator->process(middle[i]);
 				
 				for (int j = 0; j < dimensions.output; ++j) 
 					output[j] += middle[i] * W12[i][j];
@@ -135,8 +135,8 @@ namespace NNSpace {
 			
 			for (int i = 0; i < dimensions.output; ++i)
 				// After summary, activate
-				output[i] = activator.process(output[i]);
-			
+				output[i] = activator->process(output[i]);
+				
 			return output;
 		};
 		
@@ -147,15 +147,19 @@ namespace NNSpace {
 			// n+1. size of nth layer
 			// n+2. one by one bias matrices
 			os << 3;
+			os << ' ';
 			os << dimensions.input;
+			os << ' ';
 			os << dimensions.middle;
+			os << ' ';
 			os << dimensions.output;
+			os << ' ';
 			for (int i = 0; i < dimensions.input; ++i)
 				for (int j = 0; j < dimensions.middle; ++j) 
-					os << W01[i][j];
+					os << W01[i][j] << ' ';
 			for (int i = 0; i < dimensions.middle; ++i)
 				for (int j = 0; j < dimensions.output; ++j) 
-					os << W12[i][j];
+					os << W12[i][j] << ' ';
 		};
 		
 		bool deserialize(std::istream& is) {
@@ -173,7 +177,6 @@ namespace NNSpace {
 			for (int i = 0; i < dimensions.middle; ++i)
 				for (int j = 0; j < dimensions.output; ++j) 
 					is >> W12[i][j];
-				
 			return 1;
 		};
 	};

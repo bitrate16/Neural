@@ -42,14 +42,17 @@ namespace NNSpace {
 		
 	protected:
 		
-		NetworkFunction activator = Linear();
+		NetworkFunction *activator;
 		
 	public:
 		
-		Network() {};
+		Network() { activator = new Linear(); };
+		
+		~Network() { delete activator; };
 		
 		// Set activation function
-		void setFunction(NetworkFunction function) {
+		void setFunction(NetworkFunction* function) {
+			delete activator;
 			activator = function;
 		};
 		
@@ -57,7 +60,7 @@ namespace NNSpace {
 		virtual void randomize() {};
 		
 		// Teach on input data
-		virtual void teach(const std::vector<double>& input, const std::vector<double>& output_teach, double rate) {};
+		virtual void train(const std::vector<double>& input, const std::vector<double>& output_teach, double rate) {};
 		
 		// Run input data for the output
 		virtual std::vector<double> run(const std::vector<double>& input) {};
@@ -67,6 +70,6 @@ namespace NNSpace {
 		
 		// Read from input & restore state
 		// Returns 0 on failture
-		virtual bool deserialize(std::istream& is) { return 1; };
+		virtual bool deserialize(std::istream& is) { return 0; };
 	};
 };
