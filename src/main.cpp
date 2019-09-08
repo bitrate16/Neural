@@ -33,7 +33,7 @@ void train_and_run_main() {
 	network.setFunction(new NNSpace::NETWORK_ACTIVATOR_FUNCTION());
 	
 	for (int i = 0; i < TRAIN_SET_SIZE; ++i) {
-		std::cout << "Train " << i << ' ' << TRAIN_SET_SIZE << std::endl;
+		std::cout << "Train " << i << " / " << TRAIN_SET_SIZE << std::endl;
 		std::vector<double> input(28 * 28);
 		std::vector<double> output(10);
 		
@@ -90,7 +90,7 @@ void train_and_serialize() {
 	network.setFunction(new NNSpace::NETWORK_ACTIVATOR_FUNCTION());
 	
 	for (int i = 0; i < TRAIN_SET_SIZE; ++i) {
-		std::cout << "Train " << i << ' ' << TRAIN_SET_SIZE << std::endl;
+		std::cout << "Train " << i << " / " << TRAIN_SET_SIZE << std::endl;
 		std::vector<double> input(28 * 28);
 		std::vector<double> output(10);
 		
