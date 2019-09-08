@@ -256,7 +256,7 @@ bool read_mnist_label_file_categorical(Container& labels, const std::string& pat
 template <template <typename...> class Container = std::vector, typename Image, typename Functor>
 Container<Image> read_training_images(const std::string& folder, std::size_t limit, Functor func) {
     Container<Image> images;
-    read_mnist_image_file<Container, Image>(images, folder + "/train-images-idx3-ubyte", limit, func);
+    read_mnist_image_file<Container, Image>(images, folder + "/train-images.idx3-ubyte", limit, func);
     return images;
 }
 
@@ -272,7 +272,7 @@ Container<Image> read_training_images(const std::string& folder, std::size_t lim
 template <template <typename...> class Container = std::vector, typename Image, typename Functor>
 Container<Image> read_test_images(const std::string& folder, std::size_t limit, Functor func) {
     Container<Image> images;
-    read_mnist_image_file<Container, Image>(images, folder + "/t10k-images-idx3-ubyte", limit, func);
+    read_mnist_image_file<Container, Image>(images, folder + "/t10k-images.idx3-ubyte", limit, func);
     return images;
 }
 
@@ -287,7 +287,7 @@ Container<Image> read_test_images(const std::string& folder, std::size_t limit, 
 template <template <typename...> class Container = std::vector, typename Label = uint8_t>
 Container<Label> read_training_labels(const std::string& folder, std::size_t limit) {
     Container<Label> labels;
-    read_mnist_label_file<Container, Label>(labels, folder + "/train-labels-idx1-ubyte", limit);
+    read_mnist_label_file<Container, Label>(labels, folder + "/train-labels.idx1-ubyte", limit);
     return labels;
 }
 
@@ -302,7 +302,7 @@ Container<Label> read_training_labels(const std::string& folder, std::size_t lim
 template <template <typename...> class Container = std::vector, typename Label = uint8_t>
 Container<Label> read_test_labels(const std::string& folder, std::size_t limit) {
     Container<Label> labels;
-    read_mnist_label_file<Container, Label>(labels, folder + "/t10k-labels-idx1-ubyte", limit);
+    read_mnist_label_file<Container, Label>(labels, folder + "/t10k-labels.idx1-ubyte", limit);
     return labels;
 }
 

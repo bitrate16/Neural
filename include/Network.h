@@ -10,8 +10,8 @@ namespace NNSpace {
 
 	public:
 		
-		virtual double process(double t);
-		virtual double derivative(double t);
+		virtual double process(double t) { return 0; };
+		virtual double derivative(double t) { return 0; };
 	};
 
 	class Linear : public NetworkFunction {
@@ -46,7 +46,7 @@ namespace NNSpace {
 		
 	public:
 		
-		Network();
+		Network() {};
 		
 		// Set activation function
 		void setFunction(NetworkFunction function) {
@@ -54,19 +54,19 @@ namespace NNSpace {
 		};
 		
 		// Randomize biases
-		virtual void randomize();
+		virtual void randomize() {};
 		
 		// Teach on input data
-		virtual void teach(const std::vector<double>& input, const std::vector<double>& output_teach, double rate);
+		virtual void teach(const std::vector<double>& input, const std::vector<double>& output_teach, double rate) {};
 		
 		// Run input data for the output
-		virtual std::vector<double> run(const std::vector<double>& input);
+		virtual std::vector<double> run(const std::vector<double>& input) {};
 		
 		// Output network to os as restorable representation form
-		virtual void serialize(std::ostream& os);
+		virtual void serialize(std::ostream& os) {};
 		
 		// Read from input & restore state
 		// Returns 0 on failture
-		virtual bool deserialize(std::istream& is);
+		virtual bool deserialize(std::istream& is) { return 1; };
 	};
 };

@@ -22,9 +22,9 @@ namespace NNSpace {
 			int output;
 		} dimensions;
 		
-		SLNetwork() {};
+		SLNetwork() : Network() {};
 		
-		SLNetwork(int input, int middle, int output) {
+		SLNetwork(int input, int middle, int output) : Network() {
 			set(input, middle, output);
 		};
 		
