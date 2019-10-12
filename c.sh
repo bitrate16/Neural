@@ -1,5 +1,10 @@
 #!/bin/bash
 
-# compile <c.sh> "libs" main
+# c.sh "libraries, optionals" infile
 
-clear && gcc -std=c++17 -w -g -Iinclude $2.cpp $1 -lstdc++ -lm -o $2 && ./$2
+INCLUDE="include"
+BIN="bin"
+
+mkdir -p $(dirname ./$BIN/$2)
+
+clear && gcc -std=c++17 -w -g -I$INCLUDE $2.cpp $1 -lstdc++ -lm -o $BIN/$2 && ./$BIN/$2

@@ -35,7 +35,7 @@ using namespace spaint;
 
 // Preview dataset testing images with labels
 
-// bash c.sh "-lX11" src/test_pak
+// bash c.sh "-lX11" example/test_pak
 
 
 class scene : public component {

@@ -1,21 +1,21 @@
-
 #include "Network.h"
 #include "SingleLayerNetwork.h"
 
 #include "mnist/mnist_reader.hpp"
 
 #include <iostream>
+#include <iomanip>
 
 // Tweaks
 #define MNIST_DATA_LOCATION "input"
 #define NETWORK_SERIALIZE_PATH "output/digits.neetwook"
 #define TRAIN_SET_SIZE dataset.training_images.size()
-#define TRAIN_RATE 1e-3
+#define TRAIN_RATE 0.5
 #define NETWORK_ACTIVATOR_FUNCTION Sigmoid
 
 // #define TRAIN_AND_RUN
-#define TRAIN
-// #define RUN
+ #define TRAIN
+ #define RUN
 
 // Perform train of the network & running on tests
 void train_and_run_main() {
@@ -45,6 +45,7 @@ void train_and_run_main() {
 		network.train(input, output, TRAIN_RATE);
 	}
 	
+	int passed_amount = 0;
 	for (int i = 0; i < dataset.test_images.size(); ++i) {
 		std::vector<double> input(28 * 28);
 		
@@ -67,11 +68,17 @@ void train_and_run_main() {
 		std::cout << max << ", ";
 		if (max != dataset.test_labels[i])
 			std::cout << "MISS " << maxv;
-		else
+		else {
+			++passed_amount;
 			std::cout << "PASS";
+		}
 		
 		std::cout << std::endl;
 	}
+	
+	std::cout.setf(std::ios_base::fixed, std::ios_base::floatfield);
+	std::cout.precision(2);
+	std::cout << "RESULT: " << passed_amount << '/' << dataset.test_images.size() << " [" << (100.0 * (double) passed_amount / (double)dataset.test_images.size()) << "%]" << std::endl;
 };
 
 // Perform train of the network & serialize
@@ -114,6 +121,7 @@ void train_and_serialize() {
 	of.close();
 };
 
+// Deserialize data and run
 void deserialize_and_run() {
 	std::cout << "MNIST data directory: " << MNIST_DATA_LOCATION << std::endl;
 
@@ -141,6 +149,7 @@ void deserialize_and_run() {
 	}
 	ifs.close();
 	
+	int passed_amount = 0;
 	for (int i = 0; i < dataset.test_images.size(); ++i) {
 		std::vector<double> input(28 * 28);
 		
@@ -163,12 +172,20 @@ void deserialize_and_run() {
 		std::cout << max << ", ";
 		if (max != dataset.test_labels[i])
 			std::cout << "MISS " << maxv;
-		else
+		else {
+			++passed_amount;
 			std::cout << "PASS";
+		}
 		
 		std::cout << std::endl;
 	}
+	
+	std::cout.setf(std::ios_base::fixed, std::ios_base::floatfield);
+	std::cout.precision(2);
+	std::cout << "RESULT: " << passed_amount << '/' << dataset.test_images.size() << " [" << (100.0 * (double) passed_amount / (double)dataset.test_images.size()) << "%]" << std::endl;
 };
+
+// bash c.sh "-O3" src/main
 
 int main(int argc, char** argv) {
 
