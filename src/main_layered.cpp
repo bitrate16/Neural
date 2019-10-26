@@ -1,5 +1,5 @@
 #include "Network.h"
-#include "SingleLayerNetwork.h"
+#include "MultiLayerNetwork.h"
 
 #include "mnist/mnist_reader.hpp"
 
@@ -8,9 +8,10 @@
 
 // Tweaks
 #define MNIST_DATA_LOCATION "input"
-#define NETWORK_SERIALIZE_PATH "output/digits.neetwook"
+#define NETWORK_SERIALIZE_PATH "output/digits_ml.neetwook"
 #define TRAIN_SET_SIZE dataset.training_images.size()
 #define TRAIN_RATE 0.1
+#define DEEP_LAYER_SET 19 * 19, 5 * 5, 4 * 4
 #define NETWORK_ACTIVATOR_FUNCTION Sigmoid
 
 // #define TRAIN_AND_RUN
@@ -28,7 +29,7 @@ void train_and_run_main() {
     std::cout << "Nbr of test images = " << dataset.test_images.size() << std::endl;
     std::cout << "Nbr of test labels = " << dataset.test_labels.size() << std::endl;
 	
-	NNSpace::SLNetwork network(28 * 28, 19 * 19, 10);
+	NNSpace::MLNetwork network({ 28 * 28, DEEP_LAYER_SET, 10 });
 	network.randomize();
 	network.setFunction(new NNSpace::NETWORK_ACTIVATOR_FUNCTION());
 	
@@ -92,7 +93,7 @@ void train_and_serialize() {
     std::cout << "Nbr of test images = " << dataset.test_images.size() << std::endl;
     std::cout << "Nbr of test labels = " << dataset.test_labels.size() << std::endl;
 	
-	NNSpace::SLNetwork network(28 * 28, 19 * 19, 10);
+	NNSpace::MLNetwork network({ 28 * 28, DEEP_LAYER_SET, 10 });
 	network.randomize();
 	network.setFunction(new NNSpace::NETWORK_ACTIVATOR_FUNCTION());
 	
@@ -132,7 +133,7 @@ void deserialize_and_run() {
     std::cout << "Nbr of test images = " << dataset.test_images.size() << std::endl;
     std::cout << "Nbr of test labels = " << dataset.test_labels.size() << std::endl;
 	
-	NNSpace::SLNetwork network(28 * 28, 19 * 19, 10);
+	NNSpace::MLNetwork network({ 28 * 28, DEEP_LAYER_SET, 10 });
 	network.setFunction(new NNSpace::NETWORK_ACTIVATOR_FUNCTION());
 	
 	std::cout << "Deserializing network from " << NETWORK_SERIALIZE_PATH << std::endl;
@@ -185,7 +186,7 @@ void deserialize_and_run() {
 	std::cout << "RESULT: " << passed_amount << '/' << dataset.test_images.size() << " [" << (100.0 * (double) passed_amount / (double)dataset.test_images.size()) << "%]" << std::endl;
 };
 
-// bash c.sh "-O3" src/main
+// bash c.sh "-O3" src/main_layered
 
 int main(int argc, char** argv) {
 

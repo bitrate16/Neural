@@ -15,6 +15,9 @@ namespace NNSpace {
 		// Biases
 		std::vector<std::vector<double>> W01; // Input -> middle layer connections.
 		std::vector<std::vector<double>> W12; // Middle -> output layer connections.
+		// Offsets
+		std::vector<double> middle_offset;
+		std::vector<double> output_offset;
 		
 		struct {
 			int input  = 0;
@@ -30,10 +33,11 @@ namespace NNSpace {
 		
 		void set(int input, int middle, int output) {
 			W01.resize(input, std::vector<double>(middle));
-			
 			W12.resize(middle, std::vector<double>(output));
+			middle_offset.resize(middle);
+			output_offset.resize(output);
 			
-			dimensions.input = input;
+			dimensions.input  = input;
 			dimensions.middle = middle;
 			dimensions.output = output;
 		};
@@ -47,7 +51,15 @@ namespace NNSpace {
 
 			for (int i = 0; i < dimensions.middle; ++i)
 				for (int j = 0; j < dimensions.output; ++j)
-					W12[i][j] = rand() * v1_MAX - 1.0;						
+					W12[i][j] = rand() * v1_MAX - 1.0;		
+
+			double v2_MAX = 1.0 / RAND_MAX;
+			
+			for (int i = 0; i < dimensions.middle; ++i)
+				middle_offset[i] = rand() * v2_MAX;
+			
+			for (int i = 0; i < dimensions.output; ++i)
+				output_offset[i] = rand() * v2_MAX;
 		};
 		
 		// Teach using backpropagation
@@ -58,33 +70,44 @@ namespace NNSpace {
 			std::vector<double> output_raw(dimensions.output);
 			std::vector<double> output(dimensions.output);
 			
-			for (int i = 0; i < dimensions.input; ++i)
-				for (int j = 0; j < dimensions.middle; ++j) 
-					middle_raw[j] += input[i] * W01[i][j];
-			
-			for (int i = 0; i < dimensions.middle; ++i) {
-				// After summary, activate
-				middle[i] = activator->process(middle_raw[i]);
+			// input -> middle
+			for (int j = 0; j < dimensions.middle; ++j) {
+				middle_raw[j] = middle_offset[j];
 				
-				for (int j = 0; j < dimensions.output; ++j) 
-					output_raw[j] += middle[i] * W12[i][j];
+				for (int i = 0; i < dimensions.input; ++i)
+					middle_raw[j] += input[i] * W01[i][j];
+				
+				// After summary, activate
+				middle[j] = activator->process(middle_raw[j]);
 			}
 			
-			for (int i = 0; i < dimensions.output; ++i)
-				// After summary, activate
-				output[i] = activator->process(output_raw[i]);
+			// middle -> output
+			for (int j = 0; j < dimensions.output; ++j) {
+				output_raw[j] = output_offset[j];
+				
+				for (int i = 0; i < dimensions.middle; ++i)
+					output_raw[j] += middle[i] * W12[i][j];
+				
+				output[j] = activator->process(output_raw[j]);
+			}
 				
 			// Calculate sigma (error value) for output layer
 			std::vector<double> sigma_output(dimensions.output);
 			for (int i = 0; i < dimensions.output; ++i)
 				sigma_output[i] = (output_teach[i] - output[i]) * activator->derivative(output_raw[i]);
 			
-			// Calculate bias balance
+			// Calculate bias correction for middle-output
 			std::vector<std::vector<double>> dW12;
 			dW12.resize(dimensions.middle, std::vector<double>(output));
 			for (int i = 0; i < dimensions.middle; ++i)
 				for (int j = 0; j < dimensions.output; ++j)
 					dW12[i][j] = rate * sigma_output[j] * middle[i];
+				
+			// Calculate offset correction for middle-output
+			std::vector<double> do_offset;
+			do_offset.resize(dimensions.output);
+			for (int i = 0; i < dimensions.output; ++i)
+				do_offset[i] = rate * sigma_output[i];
 				
 			// Calculate sigma (error value) for middle layer
 			std::vector<double> sigma_middle_raw(dimensions.middle);
@@ -105,6 +128,12 @@ namespace NNSpace {
 				for (int i = 0; i < dimensions.input; ++i)
 					dW01[i][j] = rate * sigma_middle[j] * input[i];
 			}
+				
+			// Calculate offset correction for middle-output
+			std::vector<double> dm_offset;
+			dm_offset.resize(dimensions.middle);
+			for (int i = 0; i < dimensions.middle; ++i)
+				dm_offset[i] = rate * sigma_middle[i];
 			
 			// Balance biases
 			for (int i = 0; i < dimensions.input; ++i)
@@ -114,6 +143,13 @@ namespace NNSpace {
 			for (int i = 0; i < dimensions.middle; ++i)
 				for (int j = 0; j < dimensions.output; ++j)
 					W12[i][j] += dW12[i][j];	
+				
+			// Balance offsets
+			for (int i = 0; i < dimensions.middle; ++i)
+				middle_offset[i] += dm_offset[i];
+			
+			for (int i = 0; i < dimensions.output; ++i)
+				output_offset[i] += do_offset[i];
 		};
 		
 		// Assume input size match input layer size
@@ -121,21 +157,26 @@ namespace NNSpace {
 			std::vector<double> middle(dimensions.middle);
 			std::vector<double> output(dimensions.output);
 			
-			for (int i = 0; i < dimensions.input; ++i)
-				for (int j = 0; j < dimensions.middle; ++j) 
-					middle[j] += input[i] * W01[i][j];
-			
-			for (int i = 0; i < dimensions.middle; ++i) {
-				// After summary, activate
-				middle[i] = activator->process(middle[i]);
+			// input -> middle
+			for (int j = 0; j < dimensions.middle; ++j) {
+				middle[j] = middle_offset[j];
 				
-				for (int j = 0; j < dimensions.output; ++j) 
-					output[j] += middle[i] * W12[i][j];
+				for (int i = 0; i < dimensions.input; ++i)
+					middle[j] += input[i] * W01[i][j];
+				
+				// After summary, activate
+				middle[j] = activator->process(middle[j]);
 			}
 			
-			for (int i = 0; i < dimensions.output; ++i)
-				// After summary, activate
-				output[i] = activator->process(output[i]);
+			// middle -> output
+			for (int j = 0; j < dimensions.output; ++j) {
+				output[j] = output_offset[j];
+				
+				for (int i = 0; i < dimensions.middle; ++i)
+					output[j] += middle[i] * W12[i][j];
+				
+				output[j] = activator->process(output[j]);
+			}
 				
 			return output;
 		};
