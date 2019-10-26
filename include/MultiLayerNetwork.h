@@ -113,7 +113,7 @@ namespace NNSpace {
 					for (int j = 0; j < dimensions[k + 2]; ++j)
 						sigma[k][i] += sigma[k + 1][j] * W[k + 1][i][j];
 					
-					sigma[k][i] *= activator->derivative(layers_raw[k + 1][i]);
+					sigma[k][i] *= activator->derivative(layers_raw[k + 1 - 1][i]);
 				}
 			
 			// Calculate biases correction
