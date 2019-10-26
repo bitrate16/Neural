@@ -139,6 +139,94 @@ namespace NNSpace {
 					offsets[k][i] += doffset[k][i];
 		};
 		
+		double train_error(const std::vector<double>& input, const std::vector<double>& output_teach, double rate) {
+			double out_error_value = 0.0;
+			std::vector<std::vector<double>> layers; // [0-N]
+			layers.resize(dimensions.size());
+			layers[0] = input;
+			
+			std::vector<std::vector<double>> layers_raw; // [1-N]
+			layers_raw.resize(dimensions.size() - 1);
+			
+			// Regular process
+			for (int k = 0; k < dimensions.size() - 1; ++k) {
+				layers[k + 1].resize(dimensions[k + 1]);
+				layers_raw[k].resize(dimensions[k + 1]);
+				
+				// calculate RAW layer outputs & normalize them
+				for (int j = 0; j < dimensions[k + 1]; ++j) {
+					layers_raw[k][j] = offsets[k][j];
+					
+					for (int i = 0; i < dimensions[k]; ++i)
+						layers_raw[k][j] += layers[k][i] * W[k][i][j];
+					
+					// Normalize
+					layers[k + 1][j] = activator->process(layers_raw[k][j]);
+				}
+			}
+			
+			// Weights correction
+			std::vector<std::vector<std::vector<double>>> dW;
+			
+			dW.resize(dimensions.size() - 1);
+			for (int i = 0; i < dimensions.size() - 1; ++i) {
+				dW[i].resize(dimensions[i]);
+				for (int j = 0; j < dimensions[i]; ++j)
+					dW[i][j].resize(dimensions[i + 1]);
+			}
+			
+			// Offsets correction
+			std::vector<std::vector<double>> doffset;
+			
+			doffset.resize(dimensions.size() - 1);
+			for (int i = 0; i < dimensions.size() - 1; ++i)
+				doffset[i].resize(dimensions[i + 1]);
+			
+			// Sigmas
+			std::vector<std::vector<double>> sigma(dimensions.size() - 1);
+			for (int i = 0; i < dimensions.size() - 1; ++i)
+				sigma[i].resize(dimensions[i + 1]);
+			
+			// Calculate sigmas
+			for (int i = 0; i < dimensions.back(); ++i) { // [(dimensions.size() - 1) - 1] // -2
+				double dv = output_teach[i] - layers.back()[i];
+				sigma.back()[i] = dv * activator->derivative(layers_raw.back()[i]);
+				out_error_value += dv;
+			}
+			
+			for (int k = (dimensions.size() - 1) - 2; k >= 0; --k) // -3
+				for (int i = 0; i < dimensions[k + 1]; ++i) {
+					for (int j = 0; j < dimensions[k + 2]; ++j)
+						sigma[k][i] += sigma[k + 1][j] * W[k + 1][i][j];
+					
+					sigma[k][i] *= activator->derivative(layers_raw[k + 1 - 1][i]);
+				}
+			
+			// Calculate weights correction
+			for (int k = 0; k < dimensions.size() - 1; ++k)
+				for (int i = 0; i < dimensions[k]; ++i)
+					for (int j = 0; j < dimensions[k + 1]; ++j)
+						dW[k][i][j] = rate * sigma[k][j] * layers[k][i];
+					
+			// Calculate offset correction
+			for (int k = 0; k < dimensions.size() - 1; ++k)
+				for (int i = 0; i < dimensions[k + 1]; ++i)
+					doffset[k][i] = rate * sigma[k][i];
+					
+			// Balance weights
+			for (int k = 0; k < dimensions.size() - 1; ++k)
+				for (int i = 0; i < dimensions[k]; ++i)
+					for (int j = 0; j < dimensions[k + 1]; ++j)
+						W[k][i][j] += dW[k][i][j];
+					
+			// Balance offsets
+			for (int k = 0; k < dimensions.size() - 1; ++k)
+				for (int i = 0; i < dimensions[k + 1]; ++i)
+					offsets[k][i] += doffset[k][i];
+				
+			return out_error_value / (double) dimensions.back();
+		};
+		
 		// Assume input size match input layer size
 		std::vector<double> run(const std::vector<double>& input) {
 			std::vector<std::vector<double>> layers; // [0-N]

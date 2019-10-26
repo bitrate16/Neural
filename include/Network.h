@@ -70,6 +70,12 @@ namespace NNSpace {
 		// Teach on input data
 		virtual void train(const std::vector<double>& input, const std::vector<double>& output_teach, double rate) {};
 		
+		// Teach on input data, returns average error value for output layer
+		virtual double train_error(const std::vector<double>& input, const std::vector<double>& output_teach, double rate) { 
+			train(input, output_teach, rate); 
+			return 0.0;
+		};
+		
 		// Run input data for the output
 		virtual std::vector<double> run(const std::vector<double>& input) {};
 		

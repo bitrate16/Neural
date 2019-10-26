@@ -12,10 +12,12 @@
 #define TRAIN_SET_SIZE dataset.training_images.size()
 #define TRAIN_RATE 0.03
 #define DEEP_LAYER_SET 19 * 19, 10 * 10
+// #define DEEP_LAYER_SET 25 * 25, 20 * 20, 15 * 15, 10 * 10, 5 * 5
 #define NETWORK_ACTIVATOR_FUNCTION Sigmoid
 
 // #define TRAIN_AND_RUN
  #define TRAIN
+// #define TRAIN_ERROR
  #define RUN
 
 // Perform train of the network & running on tests
@@ -122,6 +124,49 @@ void train_and_serialize() {
 	of.close();
 };
 
+// Perform train of the network & serialize & print error values during train
+void train_error_and_serialize() {
+	std::cout << "MNIST data directory: " << MNIST_DATA_LOCATION << std::endl;
+
+	mnist::MNIST_dataset<std::vector, std::vector<uint8_t>, uint8_t> dataset = mnist::read_dataset<std::vector, std::vector, uint8_t, uint8_t>(MNIST_DATA_LOCATION);
+
+    std::cout << "Nbr of training images = " << dataset.training_images.size() << std::endl;
+    std::cout << "Nbr of training labels = " << dataset.training_labels.size() << std::endl;
+    std::cout << "Nbr of test images = " << dataset.test_images.size() << std::endl;
+    std::cout << "Nbr of test labels = " << dataset.test_labels.size() << std::endl;
+	
+	NNSpace::MLNetwork network({ 28 * 28, DEEP_LAYER_SET, 10 });
+	network.randomize();
+	network.setFunction(new NNSpace::NETWORK_ACTIVATOR_FUNCTION());
+	
+	std::cout.setf(std::ios_base::fixed, std::ios_base::floatfield);
+	std::cout.precision(4);
+	
+	for (int i = 0; i < TRAIN_SET_SIZE; ++i) {
+		std::cout << "Train " << i << " / " << TRAIN_SET_SIZE << ' ';
+		std::vector<double> input(28 * 28);
+		std::vector<double> output(10);
+		
+		for (int j = 0; j < 28 * 28; ++j)
+			input[j] = dataset.training_images[i][j] / 255.0;
+		
+		output[dataset.training_labels[i]] = 1.0;
+		
+		std::cout << network.train_error(input, output, TRAIN_RATE) << std::endl;;
+	}
+	
+	std::cout << "Serializing network to " << NETWORK_SERIALIZE_PATH << std::endl;
+	std::ofstream of;
+	of.open(NETWORK_SERIALIZE_PATH);
+	if (of.fail()) {
+		std::cout << "File " << NETWORK_SERIALIZE_PATH << " open failed" << std::endl;
+		return;
+	}
+	network.serialize(of);
+	of.flush();
+	of.close();
+};
+
 // Deserialize data and run
 void deserialize_and_run() {
 	std::cout << "MNIST data directory: " << MNIST_DATA_LOCATION << std::endl;
@@ -195,6 +240,9 @@ int main(int argc, char** argv) {
 #else
 #ifdef TRAIN
 	train_and_serialize();
+#endif
+#ifdef TRAIN_ERROR
+	train_error_and_serialize();
 #endif
 #ifdef RUN
 	deserialize_and_run();
