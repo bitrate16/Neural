@@ -12,7 +12,7 @@ namespace NNSpace {
 		
 	public:
 		
-		// Biases
+		// Weights
 		std::vector<std::vector<double>> W01; // Input -> middle layer connections.
 		std::vector<std::vector<double>> W12; // Middle -> output layer connections.
 		// Offsets
@@ -135,7 +135,7 @@ namespace NNSpace {
 			for (int i = 0; i < dimensions.middle; ++i)
 				dm_offset[i] = rate * sigma_middle[i];
 			
-			// Balance biases
+			// Balance weights
 			for (int i = 0; i < dimensions.input; ++i)
 				for (int j = 0; j < dimensions.middle; ++j)
 					W01[i][j] += dW01[i][j];

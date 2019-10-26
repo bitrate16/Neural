@@ -12,7 +12,7 @@ namespace NNSpace {
 		
 	public:
 		
-		// Biases
+		// Weights
 		std::vector<std::vector<std::vector<double>>> W;
 		// Offsets
 		std::vector<std::vector<double>> offsets;
@@ -82,7 +82,7 @@ namespace NNSpace {
 				}
 			}
 			
-			// Biases correction
+			// Weights correction
 			std::vector<std::vector<std::vector<double>>> dW;
 			
 			dW.resize(dimensions.size() - 1);
@@ -116,7 +116,7 @@ namespace NNSpace {
 					sigma[k][i] *= activator->derivative(layers_raw[k + 1 - 1][i]);
 				}
 			
-			// Calculate biases correction
+			// Calculate weights correction
 			for (int k = 0; k < dimensions.size() - 1; ++k)
 				for (int i = 0; i < dimensions[k]; ++i)
 					for (int j = 0; j < dimensions[k + 1]; ++j)
@@ -127,7 +127,7 @@ namespace NNSpace {
 				for (int i = 0; i < dimensions[k + 1]; ++i)
 					doffset[k][i] = rate * sigma[k][i];
 					
-			// Balance biases
+			// Balance weights
 			for (int k = 0; k < dimensions.size() - 1; ++k)
 				for (int i = 0; i < dimensions[k]; ++i)
 					for (int j = 0; j < dimensions[k + 1]; ++j)

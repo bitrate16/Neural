@@ -19,7 +19,7 @@ namespace NNSpace {
 	public:
 		
 		double process(double t) { return t; };
-		double derivative(double t) { return 0; };
+		double derivative(double t) { return 1.0; };
 	};
 
 	class Sigmoid : public NetworkFunction {
@@ -36,6 +36,14 @@ namespace NNSpace {
 		
 		double process(double t) { return  2 / (1 + std::exp(-t)) - 1; };
 		double derivative(double t) { return 0.5 * (1 + this->process(t)) * (1 - this->process(t)); };
+	};
+
+	class ReLU : public NetworkFunction {
+
+	public:
+		
+		double process(double t) { return t < 0.0 ? 0.0 : t; };
+		double derivative(double t) { return t < 0.0 ? 0.0 : 1.0; };
 	};
 
 	class Network {
