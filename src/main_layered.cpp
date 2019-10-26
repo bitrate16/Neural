@@ -10,8 +10,8 @@
 #define MNIST_DATA_LOCATION "input"
 #define NETWORK_SERIALIZE_PATH "output/digits_ml.neetwook"
 #define TRAIN_SET_SIZE dataset.training_images.size()
-#define TRAIN_RATE 0.1
-#define DEEP_LAYER_SET 19 * 19, 5 * 5, 4 * 4
+#define TRAIN_RATE 0.03
+#define DEEP_LAYER_SET 19 * 19, 10 * 10
 #define NETWORK_ACTIVATOR_FUNCTION Sigmoid
 
 // #define TRAIN_AND_RUN
