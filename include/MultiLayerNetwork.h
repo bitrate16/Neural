@@ -16,6 +16,8 @@ namespace NNSpace {
 		std::vector<std::vector<std::vector<double>>> W;
 		// Offsets
 		std::vector<std::vector<double>> offsets;
+		// Activators
+		std::vector<NetworkFunction*> activators;
 		// Dimensions
 		std::vector<int> dimensions;
 		
@@ -28,6 +30,8 @@ namespace NNSpace {
 		void set(const std::vector<int>& dim) {
 			dimensions = dim;
 			
+			W.clear();
+			
 			W.resize(dim.size() - 1);
 			for (int i = 0; i < dim.size() - 1; ++i) {
 				W[i].resize(dim[i]);
@@ -35,24 +39,41 @@ namespace NNSpace {
 					W[i][j].resize(dim[i + 1]);
 			}
 			
+			offsets.clear();
+			
 			offsets.resize(dimensions.size() - 1);
 			for (int i = 0; i < dimensions.size() - 1; ++i)
 				offsets[i].resize(dimensions[i + 1]);
+			
+			while (activaros.size() + 1 > dim.size()) {
+				delete activators.back();
+				activators.pop_back();
+			}
+			
+			while (activators.size() + 1 < dim.size()) {
+				activators.push_back(new Linear())
+			}
+		};
+		
+		void setLayerActivator(int layer, NetworkFunction* function) {
+			if (layer > 0 && layer < activators.size() + 1) {
+				delete activators[i];
+				activators[i] = function;
+			} else
+				throw std::runtime_error("Invalid layer number");
 		};
 		
 		void randomize() {
-			double v1_MAX = 2.0 / RAND_MAX;
+			double v1_MAX = 1.0 / RAND_MAX;
 			
 			for (int k = 0; k < dimensions.size() - 1; ++k)
 				for (int i = 0; i < dimensions[k]; ++i)
 					for (int j = 0; j < dimensions[k + 1]; ++j)
-						W[k][i][j] = rand() * v1_MAX - 1.0;		
-					
-			double v2_MAX = 1.0 / RAND_MAX;
+						W[k][i][j] = rand() * v1_MAX - 0.5;		
 
 			for (int i = 0; i < dimensions.size() - 1; ++i)
 				for (int j = 0; j < dimensions[i + 1]; ++j)
-					offsets[i][j] = rand() * v2_MAX;
+					offsets[i][j] = rand() * v1_MAX - 0.5;
 		};
 		
 		// Teach using backpropagation
@@ -78,7 +99,7 @@ namespace NNSpace {
 						layers_raw[k][j] += layers[k][i] * W[k][i][j];
 					
 					// Normalize
-					layers[k + 1][j] = activator->process(layers_raw[k][j]);
+					layers[k + 1][j] = activators[k]->process(layers_raw[k][j]);
 				}
 			}
 			
@@ -106,14 +127,14 @@ namespace NNSpace {
 			
 			// Calculate sigmas
 			for (int i = 0; i < dimensions.back(); ++i) // [(dimensions.size() - 1) - 1] // -2
-				sigma.back()[i] = (output_teach[i] - layers.back()[i]) * activator->derivative(layers_raw.back()[i]);
+				sigma.back()[i] = (output_teach[i] - layers.back()[i]) * activators.back()->derivative(layers_raw.back()[i]);
 			
 			for (int k = (dimensions.size() - 1) - 2; k >= 0; --k) // -3
 				for (int i = 0; i < dimensions[k + 1]; ++i) {
 					for (int j = 0; j < dimensions[k + 2]; ++j)
 						sigma[k][i] += sigma[k + 1][j] * W[k + 1][i][j];
 					
-					sigma[k][i] *= activator->derivative(layers_raw[k + 1 - 1][i]);
+					sigma[k][i] *= activators[k + 2]->derivative(layers_raw[k + 1 - 1][i]);
 				}
 			
 			// Calculate weights correction
@@ -161,7 +182,7 @@ namespace NNSpace {
 						layers_raw[k][j] += layers[k][i] * W[k][i][j];
 					
 					// Normalize
-					layers[k + 1][j] = activator->process(layers_raw[k][j]);
+					layers[k + 1][j] = activators[k]->process(layers_raw[k][j]);
 				}
 			}
 			
@@ -190,7 +211,7 @@ namespace NNSpace {
 			// Calculate sigmas
 			for (int i = 0; i < dimensions.back(); ++i) { // [(dimensions.size() - 1) - 1] // -2
 				double dv = output_teach[i] - layers.back()[i];
-				sigma.back()[i] = dv * activator->derivative(layers_raw.back()[i]);
+				sigma.back()[i] = dv * activators.back()->derivative(layers_raw.back()[i]);
 				out_error_value += dv;
 			}
 			
@@ -199,7 +220,7 @@ namespace NNSpace {
 					for (int j = 0; j < dimensions[k + 2]; ++j)
 						sigma[k][i] += sigma[k + 1][j] * W[k + 1][i][j];
 					
-					sigma[k][i] *= activator->derivative(layers_raw[k + 1 - 1][i]);
+					sigma[k][i] *= activators[k + 2]->derivative(layers_raw[k + 1 - 1][i]);
 				}
 			
 			// Calculate weights correction
@@ -245,7 +266,7 @@ namespace NNSpace {
 						layers[k + 1][j] += layers[k][i] * W[k][i][j];
 					
 					// Normalize
-					layers[k + 1][j] = activator->process(layers[k + 1][j]);
+					layers[k + 1][j] = activators[k]->process(layers[k + 1][j]);
 				}
 			}
 			
@@ -258,11 +279,19 @@ namespace NNSpace {
 			// 1. number of layers
 			// 2. size of first layer
 			// n+1. size of nth layer
-			// n+2. one by one bias matrices
-			// n+3. offset matrix
+			// n+2. 1 layer activator id
+			// 2n+1. n activator id
+			// 2n+2. one by one bias matrices
+			// 2n+3. offset matrix
 			os << dimensions.size();
+			os << std::endl;
+			
 			for (int k = 0; k < dimensions.size(); ++k)
 				os << ' ' << dimensions[k];
+			os << std::endl;
+			
+			for (int i = 0; i < activators.size(); ++i)
+				os << (int) activators[i]->getType() << ' ';
 			os << std::endl;
 			
 			for (int k = 0; k < dimensions.size() - 1; ++k)
@@ -285,6 +314,13 @@ namespace NNSpace {
 				is >> dimensions[k];
 			
 			set(dimensions);
+			
+			for (int i = 0; i < size - 1; ++i) {
+				int ac;
+				is >> ac;
+				
+				ativators[i] = getActivatorByType((ActivatorType) ac);
+			}
 			
 			for (int k = 0; k < dimensions.size() - 1; ++k)
 				for (int i = 0; i < dimensions[k]; ++i)

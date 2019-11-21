@@ -18,9 +18,11 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#include <random>
 #include <fstream>
 #include <cmath>
 #include <unistd.h>
+#include <algorithm>
 
 #include "Network.h"
 #include "SingleLayerNetwork.h"
@@ -34,10 +36,26 @@ using namespace spaint;
 #define KEY_R      27
 
 // Function properties
-#define FUNCTION_START  0.0
-#define FUNCTION_END    1.0
+#define TRAIN_RATE           (0.001)
+#define TRAIN_RATE_ITERATION 1.0
+#define TRAIN_SET_SIZE       100000
+#define TEST_SET_SIZE        100
+#define ACCURATE_SET_SIZE    100
+#define FUNCTION_START       0.0
+#define FUNCTION_END         1.0
+
+#define NETWORK_ACTIVATOR1_FUNCTION ReLU
+#define NETWORK_ACTIVATOR2_FUNCTION TanH
+#define NETWORK_DEEP_SIZE           20
+#define NETWORK_ENABLE_OFFSETS      1
+
 #define DISPLAY_OFFSET          0.25
 #define DISPLAY_OFFSET_VERTICAL 0.1
+
+#define REPAINT_STEP       1000
+#define REPAINT_STEP_DELAY 0
+
+#define RANDOMIZE_SET
 
 // Network properties
 #define SL_NETWORK_NAME "output/approx.neetwook"
@@ -45,7 +63,7 @@ using namespace spaint;
 
 // Render approx network result plot
 
-// bash c.sh "-lX11" src/approx_render
+// bash c.sh "-lX11" src/approx_realtime_render
 
 
 class scene : public component {
@@ -55,9 +73,59 @@ class scene : public component {
 		get_window().set_title("Approx plot");
 		
 		updated = 1;
+		
+		network.randomize();
+		network.setEnableOffsets(NETWORK_ENABLE_OFFSETS);
+		network.setLayerActivator(1, new NNSpace::NETWORK_ACTIVATOR1_FUNCTION());
+		network.setLayerActivator(2, new NNSpace::NETWORK_ACTIVATOR2_FUNCTION());
+		
+		train_set = get_train_set();
+		
+#ifdef RANDOMIZE_SET
+		std::random_device rd;
+		std::mt19937 g(rd());
+		std::shuffle(train_set.begin(), train_set.end(), g);
+#endif
 	};
 	
 	void destroy() {};
+	
+	// Point set for training
+	std::vector<double> get_train_set() {
+		std::vector<double> points(TRAIN_SET_SIZE);
+		
+		double step = (FUNCTION_END - FUNCTION_START) / static_cast<double>(TRAIN_SET_SIZE + 1);
+		int i = 0;
+		for (double d = FUNCTION_START; d < FUNCTION_END - step; d += step)
+			points[i++] = d;
+		
+		return points;
+	};
+
+	// Point set for testring
+	std::vector<double> get_test_set() {
+		std::vector<double> points(TEST_SET_SIZE);
+		
+		double step = (FUNCTION_END - FUNCTION_START) / static_cast<double>(TEST_SET_SIZE + 1);
+		int i = 0;
+		for (double d = FUNCTION_START; d < FUNCTION_END - step; d += step)
+			points[i++] = d;
+		
+		return points;
+	};
+
+	// Point set for accurete testing, differs from test set, smaller
+	std::vector<double> get_accurate_set() {
+		std::vector<double> points(ACCURATE_SET_SIZE);
+		
+		double step = (FUNCTION_END - FUNCTION_START) / static_cast<double>(ACCURATE_SET_SIZE + 1);
+		int i = 0;
+		for (double d = FUNCTION_START; d < FUNCTION_END - step; d += step)
+			points[i++] = d;
+		
+		return points;
+	};
+
 	
 	// Point set for testring
 	std::vector<double> get_plot_set() {
@@ -77,28 +145,15 @@ class scene : public component {
 		return std::sin(2.0 * 3.141528 * t) * 0.5 + 0.5; // -1.0 + 2.0 * t; // sin(t * 3.141528); // std::sin(2.0 * 3.141528 * t) * std::cos(5.0 * 3.141528 * t);
 	};
 	
-	bool reload() {		
-		// std::cout << "Deserializing network from " << SL_NETWORK_NAME << std::endl;
-		std::ifstream ifs;
-		ifs.open(SL_NETWORK_NAME);
-		if (ifs.fail()) {
-			std::cout << "File " << SL_NETWORK_NAME << " not found" << std::endl;
-			return 0;
-		}
-		if (!network.deserialize(ifs)) {
-			std::cout << "Deserialize failed" << std::endl;
-			ifs.close();
-			return 0;
-		}
-		ifs.close();
-		
-		return 1;
-	};
-	
-	NNSpace::SLNetwork network;
+	NNSpace::SLNetwork network = NNSpace::SLNetwork(1, NETWORK_DEEP_SIZE, 1);
 	bool mouse_down = 0;
 	bool resized = 0;
 	bool updated = 0;
+	bool painting = 1;
+	double rate = 1.0;
+	int step = 0;
+	
+	std::vector<double> train_set;
 	
 	void resize() {
 		resized = 1;
@@ -109,7 +164,7 @@ class scene : public component {
 		painter& p = w.get_paint();
 		
 		// Block untill event is reached
-		if (!mouse_down) w.wait_event(1);
+		// if (!mouse_down) w.wait_event(1);
 		
 		if (w.has_key_event(0))
 			if (w.get_key_down() == KEY_ESCAPE)
@@ -124,12 +179,40 @@ class scene : public component {
 				mouse_down = 0;
 			
 		w.clear_events();
+		
+		if (step < train_set.size()) {
+			std::cout << "Train " << step << " / " << TRAIN_SET_SIZE << std::endl;
+			std::vector<double> input = { train_set[step] };
+			std::vector<double> output = { get_function(train_set[step]) };
 			
-		if (resized || updated) {
+			rate = std::fabs(network.train_error(input, output, rate));
+			rate = rate <= TRAIN_RATE ? TRAIN_RATE : rate;
 			
-			if (updated)
-				if (!reload())
-					exit(0);
+			++step;
+		}
+		
+		if (resized || updated || painting && (step % REPAINT_STEP == 0 || step >= train_set.size() - 1)) {
+			
+			if (step >= train_set.size() - 1)
+				painting = 0;
+			
+			if (updated) {
+				painting = 1;
+				network.randomize();
+				
+#ifdef RANDOMIZE_SET
+				std::random_device rd;
+				std::mt19937 g(rd());
+				std::shuffle(train_set.begin(), train_set.end(), g);
+#endif
+
+				resized = 0;
+				updated = 0;
+				
+				step = 0;
+				
+				return;
+			}
 			
 			resized = 0;
 			updated = 0;
@@ -162,6 +245,8 @@ class scene : public component {
 				y = get_window().get_height() - get_window().get_height() * ((get_function(set[i]) + 1.0) * (0.5 - DISPLAY_OFFSET_VERTICAL) + DISPLAY_OFFSET_VERTICAL);
 				p.point(x, y);
 			}
+			
+			usleep(REPAINT_STEP_DELAY * 1000);
 			
 		} else {
 			// ...

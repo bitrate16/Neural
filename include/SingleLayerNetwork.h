@@ -27,15 +27,32 @@ namespace NNSpace {
 			int output = 0;
 		} dimensions;
 		
-		SLNetwork() : Network() {};
+		NetworkFunction* middle_act, *output_act;
+		
+		SLNetwork() : Network() {
+			middle_act = new Linear();
+			output_act = new Linear();
+		};
 		
 		SLNetwork(int input, int middle, int output) : Network() {
 			set(input, middle, output);
 		};
 		
+		~SLNetwork() {
+			delete middle_act;
+			delete output_act;
+		};
+		
 		void set(int input, int middle, int output) {
+			W01.clear();
+			W12.clear();
+			
 			W01.resize(input, std::vector<double>(middle));
 			W12.resize(middle, std::vector<double>(output));
+			
+			middle_offset.clear();
+			output_offset.clear();
+			
 			middle_offset.resize(middle);
 			output_offset.resize(output);
 			
@@ -43,25 +60,34 @@ namespace NNSpace {
 			dimensions.middle = middle;
 			dimensions.output = output;
 		};
+				
+		void setLayerActivator(int layer, NetworkFunction* function) {
+			if (layer == 1) {
+				delete middle_act;
+				middle_act = function;
+			} else if (layer == 2) {
+				delete output_act;
+				output_act = function;
+			} else
+				throw std::runtime_error("Invalid layer number");
+		};
 		
 		void randomize() {
-			double v1_MAX = 2.0 / RAND_MAX;
+			double v1_MAX = 1.0 / RAND_MAX;
 			
 			for (int i = 0; i < dimensions.input; ++i)
 				for (int j = 0; j < dimensions.middle; ++j)
-					W01[i][j] = rand() * v1_MAX - 1.0;
+					W01[i][j] = rand() * v1_MAX - 0.5;
 
 			for (int i = 0; i < dimensions.middle; ++i)
 				for (int j = 0; j < dimensions.output; ++j)
-					W12[i][j] = rand() * v1_MAX - 1.0;		
+					W12[i][j] = rand() * v1_MAX - 0.5;		
 
-			double v2_MAX = 1.0 / RAND_MAX;
-			
 			for (int i = 0; i < dimensions.middle; ++i)
-				middle_offset[i] = rand() * v2_MAX;
+				middle_offset[i] = rand() * v1_MAX - 0.5;
 			
 			for (int i = 0; i < dimensions.output; ++i)
-				output_offset[i] = rand() * v2_MAX;
+				output_offset[i] = rand() * v1_MAX - 0.5;
 		};
 		
 		inline void setEnableOffsets(bool e) {
@@ -84,7 +110,7 @@ namespace NNSpace {
 					middle_raw[j] += input[i] * W01[i][j];
 				
 				// After summary, activate
-				middle[j] = activator->process(middle_raw[j]);
+				middle[j] = middle_act->process(middle_raw[j]);
 			}
 			
 			// middle -> output
@@ -94,13 +120,13 @@ namespace NNSpace {
 				for (int i = 0; i < dimensions.middle; ++i)
 					output_raw[j] += middle[i] * W12[i][j];
 				
-				output[j] = activator->process(output_raw[j]);
+				output[j] = output_act->process(output_raw[j]);
 			}
 				
 			// Calculate sigma (error value) for output layer
 			std::vector<double> sigma_output(dimensions.output);
 			for (int i = 0; i < dimensions.output; ++i)
-				sigma_output[i] = (output_teach[i] - output[i]) * activator->derivative(output_raw[i]);
+				sigma_output[i] = (output_teach[i] - output[i]) * output_act->derivative(output_raw[i]);
 			
 			// Calculate bias correction for middle-output
 			std::vector<std::vector<double>> dW12;
@@ -129,7 +155,7 @@ namespace NNSpace {
 			dW01.resize(dimensions.input, std::vector<double>(middle));
 			for (int j = 0; j < dimensions.middle; ++j) {
 				// Multiply by activator derivative
-				sigma_middle[j] = sigma_middle_raw[j] * activator->derivative(middle_raw[j]);
+				sigma_middle[j] = sigma_middle_raw[j] * middle_act->derivative(middle_raw[j]);
 				
 				for (int i = 0; i < dimensions.input; ++i)
 					dW01[i][j] = rate * sigma_middle[j] * input[i];
@@ -173,7 +199,7 @@ namespace NNSpace {
 					middle_raw[j] += input[i] * W01[i][j];
 				
 				// After summary, activate
-				middle[j] = activator->process(middle_raw[j]);
+				middle[j] = middle_act->process(middle_raw[j]);
 			}
 			
 			// middle -> output
@@ -183,14 +209,14 @@ namespace NNSpace {
 				for (int i = 0; i < dimensions.middle; ++i)
 					output_raw[j] += middle[i] * W12[i][j];
 				
-				output[j] = activator->process(output_raw[j]);
+				output[j] = output_act->process(output_raw[j]);
 			}
 				
 			// Calculate sigma (error value) for output layer
 			std::vector<double> sigma_output(dimensions.output);
 			for (int i = 0; i < dimensions.output; ++i) {
 				double dv = output_teach[i] - output[i];
-				sigma_output[i] = dv * activator->derivative(output_raw[i]);
+				sigma_output[i] = dv * output_act->derivative(output_raw[i]);
 				out_error_value += dv;
 			}
 			
@@ -221,7 +247,7 @@ namespace NNSpace {
 			dW01.resize(dimensions.input, std::vector<double>(middle));
 			for (int j = 0; j < dimensions.middle; ++j) {
 				// Multiply by activator derivative
-				sigma_middle[j] = sigma_middle_raw[j] * activator->derivative(middle_raw[j]);
+				sigma_middle[j] = sigma_middle_raw[j] * middle_act->derivative(middle_raw[j]);
 				
 				for (int i = 0; i < dimensions.input; ++i)
 					dW01[i][j] = rate * sigma_middle[j] * input[i];
@@ -265,7 +291,7 @@ namespace NNSpace {
 					middle[j] += input[i] * W01[i][j];
 				
 				// After summary, activate
-				middle[j] = activator->process(middle[j]);
+				middle[j] = middle_act->process(middle[j]);
 			}
 			
 			// middle -> output
@@ -275,7 +301,7 @@ namespace NNSpace {
 				for (int i = 0; i < dimensions.middle; ++i)
 					output[j] += middle[i] * W12[i][j];
 				
-				output[j] = activator->process(output[j]);
+				output[j] = output_act->process(output[j]);
 			}
 				
 			return output;
@@ -284,9 +310,14 @@ namespace NNSpace {
 		void serialize(std::ostream& os) {
 			// Format:
 			// 1. number of layers
-			// 2. size of first layer
-			// n+1. size of nth layer
-			// n+2. one by one bias matrices
+			// 2. size of input layer
+			// 3. size of middle layer
+			// 4. size of output layer
+			// 5. middle activator id
+			// 6. output activator id
+			// 7. one by one bias matrices
+			// 8. one by one offsets
+			// 9. enable offsets
 			os << 3;
 			os << ' ';
 			os << dimensions.input;
@@ -295,21 +326,31 @@ namespace NNSpace {
 			os << ' ';
 			os << dimensions.output;
 			os << std::endl;
+			
+			os << (int) middle_act->getType();
+			os << ' ';
+			os << (int) output_act->getType();
+			os << std::endl;
+			
 			for (int i = 0; i < dimensions.input; ++i)
 				for (int j = 0; j < dimensions.middle; ++j) 
 					os << W01[i][j] << ' ';
 			os << std::endl;
+			
 			for (int i = 0; i < dimensions.middle; ++i)
 				for (int j = 0; j < dimensions.output; ++j) 
 					os << W12[i][j] << ' ';
 			os << std::endl;
 			
 			for (int i = 0; i < dimensions.middle; ++i)
-				os << middle_offset[i];
+				os << middle_offset[i] << ' ';
 			os << std::endl;
 			
 			for (int i = 0; i < dimensions.output; ++i)
-				os << output_offset[i];
+				os << output_offset[i] << ' ';
+			os << std::endl;
+			
+			os << enable_offsets;
 		};
 		
 		bool deserialize(std::istream& is) {
@@ -321,6 +362,15 @@ namespace NNSpace {
 			is >> dimensions.input;
 			is >> dimensions.middle;
 			is >> dimensions.output;
+			
+			int mact;
+			int oact;
+			
+			is >> mact;
+			is >> oact;
+			
+			middle_act = getActivatorByType((ActivatorType) mact);
+			output_act = getActivatorByType((ActivatorType) oact);
 			
 			set(dimensions.input, dimensions.middle, dimensions.output);
 			
@@ -336,6 +386,8 @@ namespace NNSpace {
 			
 			for (int i = 0; i < dimensions.output; ++i)
 				is >> output_offset[i];
+			
+			is >> enable_offsets;
 			
 			return 1;
 		};
