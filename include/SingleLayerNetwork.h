@@ -19,6 +19,8 @@ namespace NNSpace {
 		std::vector<double> middle_offset;
 		std::vector<double> output_offset;
 		
+		bool enable_offsets = 0;
+		
 		struct {
 			int input  = 0;
 			int middle = 0;
@@ -62,6 +64,10 @@ namespace NNSpace {
 				output_offset[i] = rand() * v2_MAX;
 		};
 		
+		inline void setEnableOffsets(bool e) {
+			enable_offsets = e;
+		};
+		
 		// Teach using backpropagation
 		// Assume input, output_teach size match input, output layer size
 		void train(const std::vector<double>& input, const std::vector<double>& output_teach, double rate) {
@@ -72,7 +78,7 @@ namespace NNSpace {
 			
 			// input -> middle
 			for (int j = 0; j < dimensions.middle; ++j) {
-				middle_raw[j] = middle_offset[j];
+				middle_raw[j] = enable_offsets ? middle_offset[j] : 0.0;
 				
 				for (int i = 0; i < dimensions.input; ++i)
 					middle_raw[j] += input[i] * W01[i][j];
@@ -83,7 +89,7 @@ namespace NNSpace {
 			
 			// middle -> output
 			for (int j = 0; j < dimensions.output; ++j) {
-				output_raw[j] = output_offset[j];
+				output_raw[j] = enable_offsets ? output_offset[j] : 0.0;
 				
 				for (int i = 0; i < dimensions.middle; ++i)
 					output_raw[j] += middle[i] * W12[i][j];
@@ -246,8 +252,6 @@ namespace NNSpace {
 			return out_error_value / (double) dimensions.output;
 		};
 		
-		
-		
 		// Assume input size match input layer size
 		std::vector<double> run(const std::vector<double>& input) {
 			std::vector<double> middle(dimensions.middle);
@@ -255,7 +259,7 @@ namespace NNSpace {
 			
 			// input -> middle
 			for (int j = 0; j < dimensions.middle; ++j) {
-				middle[j] = middle_offset[j];
+				middle[j] = enable_offsets ? middle_offset[j] : enable_offsets;
 				
 				for (int i = 0; i < dimensions.input; ++i)
 					middle[j] += input[i] * W01[i][j];
@@ -266,7 +270,7 @@ namespace NNSpace {
 			
 			// middle -> output
 			for (int j = 0; j < dimensions.output; ++j) {
-				output[j] = output_offset[j];
+				output[j] = enable_offsets ? output_offset[j] : 0.0;
 				
 				for (int i = 0; i < dimensions.middle; ++i)
 					output[j] += middle[i] * W12[i][j];
@@ -290,13 +294,22 @@ namespace NNSpace {
 			os << dimensions.middle;
 			os << ' ';
 			os << dimensions.output;
-			os << ' ';
+			os << std::endl;
 			for (int i = 0; i < dimensions.input; ++i)
 				for (int j = 0; j < dimensions.middle; ++j) 
 					os << W01[i][j] << ' ';
+			os << std::endl;
 			for (int i = 0; i < dimensions.middle; ++i)
 				for (int j = 0; j < dimensions.output; ++j) 
 					os << W12[i][j] << ' ';
+			os << std::endl;
+			
+			for (int i = 0; i < dimensions.middle; ++i)
+				os << middle_offset[i];
+			os << std::endl;
+			
+			for (int i = 0; i < dimensions.output; ++i)
+				os << output_offset[i];
 		};
 		
 		bool deserialize(std::istream& is) {
@@ -308,12 +321,22 @@ namespace NNSpace {
 			is >> dimensions.input;
 			is >> dimensions.middle;
 			is >> dimensions.output;
+			
+			set(dimensions.input, dimensions.middle, dimensions.output);
+			
 			for (int i = 0; i < dimensions.input; ++i)
 				for (int j = 0; j < dimensions.middle; ++j) 
 					is >> W01[i][j];
 			for (int i = 0; i < dimensions.middle; ++i)
 				for (int j = 0; j < dimensions.output; ++j) 
 					is >> W12[i][j];
+			
+			for (int i = 0; i < dimensions.middle; ++i)
+				is >> middle_offset[i];
+			
+			for (int i = 0; i < dimensions.output; ++i)
+				is >> output_offset[i];
+			
 			return 1;
 		};
 	};

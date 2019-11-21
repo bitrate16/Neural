@@ -259,15 +259,21 @@ namespace NNSpace {
 			// 2. size of first layer
 			// n+1. size of nth layer
 			// n+2. one by one bias matrices
+			// n+3. offset matrix
 			os << dimensions.size();
 			for (int k = 0; k < dimensions.size(); ++k)
 				os << ' ' << dimensions[k];
-			os << ' ';
+			os << std::endl;
 			
 			for (int k = 0; k < dimensions.size() - 1; ++k)
 				for (int i = 0; i < dimensions[k]; ++i)
 					for (int j = 0; j < dimensions[k + 1]; ++j) 
 						os << W[k][i][j] << ' ';
+			os << std::endl;
+			
+			for (int i = 0; i < dimensions.size() - 1; ++i)
+				for (int j = 0; j < dimensions[i + 1]; ++j)
+					os << offsets[i][j] << ' ';
 		};
 		
 		bool deserialize(std::istream& is) {
@@ -278,11 +284,17 @@ namespace NNSpace {
 			for (int k = 0; k < dimensions.size(); ++k)
 				is >> dimensions[k];
 			
+			set(dimensions);
+			
 			for (int k = 0; k < dimensions.size() - 1; ++k)
 				for (int i = 0; i < dimensions[k]; ++i)
 					for (int j = 0; j < dimensions[k + 1]; ++j) 
 						is >> W[k][i][j];
-					
+			
+			for (int i = 0; i < dimensions.size() - 1; ++i)
+				for (int j = 0; j < dimensions[i + 1]; ++j)
+					is >> offsets[i][j];
+			
 			return 1;
 		};
 	};

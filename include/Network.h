@@ -46,6 +46,20 @@ namespace NNSpace {
 		double derivative(double t) { return t < 0.0 ? 0.0 : 1.0; };
 	};
 
+	class TanH : public NetworkFunction {
+
+	public:
+		
+		double process(double t) {
+			return std::tanh(t); 
+		};
+		
+		double derivative(double t) { 
+			double sh = 1.0 / std::cosh(t);   // sech(x) == 1/cosh(x)
+			return sh * sh;                   // sech^2(x)
+		};
+	};
+
 	class Network {
 		
 	protected:

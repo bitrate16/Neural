@@ -13,6 +13,7 @@
 #define TRAIN_RATE 0.03
 #define DEEP_LAYER_SET 19 * 19, 10 * 10
 // #define DEEP_LAYER_SET 25 * 25, 20 * 20, 15 * 15, 10 * 10, 5 * 5
+// #define DEEP_LAYER_SET 25 * 25, 25 * 20, 20 * 20, 20 * 15, 15 * 15, 15 * 10, 10 * 10, 10 * 5, 5 * 5
 #define NETWORK_ACTIVATOR_FUNCTION Sigmoid
 
 // #define TRAIN_AND_RUN
