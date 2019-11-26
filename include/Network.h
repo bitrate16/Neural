@@ -24,6 +24,7 @@ namespace NNSpace {
 		
 		virtual double process(double t) { return 0; };
 		virtual double derivative(double t) { return 0; };
+		virtual NetworkFunction* clone() { return nullptr; };
 		ActivatorType getType() { return type; };
 	};
 
@@ -35,6 +36,7 @@ namespace NNSpace {
 		
 		double process(double t) { return t; };
 		double derivative(double t) { return 1.0; };
+		virtual NetworkFunction* clone() { return new Linear(); };
 	};
 
 	class Sigmoid : public NetworkFunction {
@@ -45,6 +47,7 @@ namespace NNSpace {
 		
 		double process(double t) { return 1 / (1 + std::exp(-t)); };
 		double derivative(double t) { return this->process(t) * (1 - this->process(t)); };
+		virtual NetworkFunction* clone() { return new Sigmoid; };
 	};
 
 	class BipolarSigmoid : public NetworkFunction {
@@ -55,6 +58,7 @@ namespace NNSpace {
 		
 		double process(double t) { return  2 / (1 + std::exp(-t)) - 1; };
 		double derivative(double t) { return 0.5 * (1 + this->process(t)) * (1 - this->process(t)); };
+		virtual NetworkFunction* clone() { return new BipolarSigmoid(); };
 	};
 
 	class ReLU : public NetworkFunction {
@@ -65,6 +69,7 @@ namespace NNSpace {
 		
 		double process(double t) { return t <= 0.0 ? 0.0 : t; };
 		double derivative(double t) { return t <= 0.0 ? 0.0 : 1.0; };
+		virtual NetworkFunction* clone() { return new ReLU(); };
 	};
 
 	class TanH : public NetworkFunction {
@@ -81,6 +86,7 @@ namespace NNSpace {
 			double sh = 1.0 / std::cosh(t);   // sech(x) == 1/cosh(x)
 			return sh * sh;                   // sech^2(x)
 		};
+		virtual NetworkFunction* clone() { return new TanH(); };
 	};
 	
 	NetworkFunction* getActivatorByType(ActivatorType type) {
@@ -105,15 +111,18 @@ namespace NNSpace {
 		// Set activation function for passed layers
 		virtual void setLayerActivator(int layer, NetworkFunction* function) {};
 		
+		// Set activation function for all layers
+		virtual void setActivator(NetworkFunction* function) {};
+		
 		// Randomize biases
-		virtual void randomize() {};
+		virtual void initialize(int id) {};
 		
 		// Teach on input data
-		virtual void train(const std::vector<double>& input, const std::vector<double>& output_teach, double rate) {};
+		virtual void train(int id, const std::vector<double>& input, const std::vector<double>& output_teach, double rate) {};
 		
 		// Teach on input data, returns average error value for output layer
-		virtual double train_error(const std::vector<double>& input, const std::vector<double>& output_teach, double rate) { 
-			train(input, output_teach, rate); 
+		virtual double train_error(int id, const std::vector<double>& input, const std::vector<double>& output_teach, double rate) { 
+			train(id, input, output_teach, rate); 
 			return 0.0;
 		};
 		

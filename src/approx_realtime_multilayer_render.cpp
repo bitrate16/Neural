@@ -25,7 +25,7 @@
 #include <algorithm>
 
 #include "Network.h"
-#include "SingleLayerNetwork.h"
+#include "MultiLayerNetwork.h"
 
 #include "spaint.h"
 #include "Color.h"
@@ -35,22 +35,27 @@ using namespace spaint;
 #define KEY_ESCAPE 9
 #define KEY_R      27
 
-// Function properties
-#define TRAIN_RATE           (0.001)
-#define TRAIN_RATE_ITERATION 1.0
-#define TRAIN_SET_SIZE       100000
-#define TEST_SET_SIZE        100
-#define ACCURATE_SET_SIZE    100
-#define TRAIN_ALGO_ID        0
-#define INIT_ALGO_ID         0
-#define FUNCTION_START       0.0
-#define FUNCTION_END         1.0
-#define FUNCTION_FUNC        std::sin(2.0 * 3.141528 * t) * 0.5 + 0.5
+// Tweaks
+#define MNIST_DATA_LOCATION "input"
+#define NETWORK_SERIALIZE_PATH "output/approx.neetwook"
 
-#define NETWORK_ACTIVATOR1_FUNCTION TanH
-#define NETWORK_ACTIVATOR2_FUNCTION TanH
-#define NETWORK_DEEP_SIZE           3
-#define NETWORK_ENABLE_OFFSETS      1
+// Training & testing properties
+#define START_TRAIN_RATE  0.01
+#define SCALE_TRAIN_RATE  1.0
+#define TRAIN_SET_SIZE    100000
+#define TEST_SET_SIZE     100
+#define ACCURATE_SET_SIZE 100
+#define TRAIN_ALGO_ID     0
+#define INIT_ALGO_ID      0
+
+#define FUNCTION_START    0.0
+#define FUNCTION_END      1.0
+#define FUNCTION_FUNC     std::sin(2.0 * 3.141528 * t) * 0.5 + 0.5
+
+#define NETWORK_ACTIVATOR_FUNCTION TanH
+#define NETWORK_TOPO               { 1, 3, 1 }
+#define NETWORK_ENABLE_OFFSETS     1
+#define TEST_PASS_GRADE            0.01
 
 #define DISPLAY_OFFSET          0.25
 #define DISPLAY_OFFSET_VERTICAL 0.1
@@ -66,21 +71,20 @@ using namespace spaint;
 
 // Render approx network result plot
 
-// bash c.sh "-lX11" src/approx_realtime_render
+// bash c.sh "-lX11" src/approx_realtime_multilayer_render
 
 
 class scene : public component {
 	
 	void create() {
 		get_paint().init_font();
-		get_window().set_title("Approx plot");
+		get_window().set_title("Approx multiline plot");
 		
 		updated = 1;
 		
 		network.initialize(INIT_ALGO_ID);
 		network.setEnableOffsets(NETWORK_ENABLE_OFFSETS);
-		network.setLayerActivator(1, new NNSpace::NETWORK_ACTIVATOR1_FUNCTION());
-		network.setLayerActivator(2, new NNSpace::NETWORK_ACTIVATOR2_FUNCTION());
+		network.setActivator(new NNSpace::NETWORK_ACTIVATOR_FUNCTION());
 		
 		train_set = get_train_set();
 		
@@ -92,7 +96,7 @@ class scene : public component {
 	};
 	
 	void destroy() {};
-
+	
 	// Point set for training
 	std::vector<double> get_train_set() {
 		std::vector<double> points(TRAIN_SET_SIZE);
@@ -130,6 +134,7 @@ class scene : public component {
 	constexpr double get_function(double t) {
 		return FUNCTION_FUNC; // -1.0 + 2.0 * t; // sin(t * 3.141528); // std::sin(2.0 * 3.141528 * t) * std::cos(5.0 * 3.141528 * t);
 	};
+
 	
 	// Point set for testring
 	std::vector<double> get_plot_set() {
@@ -144,13 +149,13 @@ class scene : public component {
 		return points;
 	};
 	
-	NNSpace::SLNetwork network = NNSpace::SLNetwork(1, NETWORK_DEEP_SIZE, 1);
+	NNSpace::MLNetwork network = NNSpace::MLNetwork(NETWORK_TOPO);
 	bool mouse_down = 0;
-	bool resized = 0;
-	bool updated = 0;
-	bool painting = 1;
-	double rate = 1.0;
-	int step = 0;
+	bool resized    = 0;
+	bool updated    = 0;
+	bool painting   = 1;
+	double rate     = START_TRAIN_RATE;
+	int step        = 0;
 	
 	std::vector<double> train_set;
 	
@@ -179,17 +184,19 @@ class scene : public component {
 			
 		w.clear_events();
 		
+		// Make train step
 		if (step < train_set.size()) {
 			std::cout << "Train " << step << " / " << TRAIN_SET_SIZE << std::endl;
 			std::vector<double> input = { train_set[step] };
 			std::vector<double> output = { get_function(train_set[step]) };
 			
-			rate = std::fabs(network.train_error(TRAIN_ALGO_ID, input, output, rate));
-			rate = rate <= TRAIN_RATE ? TRAIN_RATE : rate;
+			rate = std::fabs(network.train_error(TRAIN_ALGO_ID, input, output, rate)) * SCALE_TRAIN_RATE;
+			rate = rate <= START_TRAIN_RATE ? START_TRAIN_RATE : rate;
 			
 			++step;
 		}
 		
+		// Render step
 		if (resized || updated || painting && (step % REPAINT_STEP == 0 || step >= train_set.size() - 1)) {
 			
 			if (step >= train_set.size() - 1)

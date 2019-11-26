@@ -1,5 +1,5 @@
 #include "Network.h"
-#include "SingleLayerNetwork.h"
+#include "MultiLayerNetwork.h"
 
 #include <iostream>
 #include <random>
@@ -12,21 +12,22 @@
 #define NETWORK_SERIALIZE_PATH "output/approx.neetwook"
 
 // Training & testing properties
-#define TRAIN_RATE           (0.001)
-#define TRAIN_SET_SIZE       10000
-#define TEST_SET_SIZE        100
-#define ACCURATE_SET_SIZE    100
-#define TRAIN_ALGO_ID        0
-#define INIT_ALGO_ID         0
-#define FUNCTION_START       0.0
-#define FUNCTION_END         1.0
-#define FUNCTION_FUNC        std::sin(2.0 * 3.141528 * t) * 0.5 + 0.5
+#define START_TRAIN_RATE  0.01
+#define SCALE_TRAIN_RATE  0.5
+#define TRAIN_SET_SIZE    10000
+#define TEST_SET_SIZE     100
+#define ACCURATE_SET_SIZE 100
+#define TRAIN_ALGO_ID     0
+#define INIT_ALGO_ID      0
 
-#define NETWORK_ACTIVATOR1_FUNCTION TanH
-#define NETWORK_ACTIVATOR2_FUNCTION TanH
-#define NETWORK_DEEP_SIZE           3
-#define NETWORK_ENABLE_OFFSETS      1
-#define TEST_PASS_GRADE             0.05
+#define FUNCTION_START    0.0
+#define FUNCTION_END      1.0
+#define FUNCTION_FUNC     std::sin(2.0 * 3.141528 * t) * 0.5 + 0.5
+
+#define NETWORK_ACTIVATOR_FUNCTION TanH
+#define NETWORK_TOPO               { 1, 3, 1 }
+#define NETWORK_ENABLE_OFFSETS     1
+#define TEST_PASS_GRADE            0.05
 
 // #define TRAIN_AND_RUN
  #define TRAIN
@@ -75,11 +76,10 @@ constexpr double get_function(double t) {
 // Perform train of the network on function approximaion
 void train_and_run_main() {
 	
-	NNSpace::SLNetwork network(1, NETWORK_DEEP_SIZE, 1);
+	NNSpace::MLNetwork network(NETWORK_TOPO);
 	network.initialize(INIT_ALGO_ID);
 	network.setEnableOffsets(NETWORK_ENABLE_OFFSETS);
-	network.setLayerActivator(1, new NNSpace::NETWORK_ACTIVATOR1_FUNCTION());
-	network.setLayerActivator(2, new NNSpace::NETWORK_ACTIVATOR2_FUNCTION());
+	network.setActivator(new NNSpace::NETWORK_ACTIVATOR_FUNCTION());
 	
 	std::vector<double> set = get_train_set();
 	
@@ -87,14 +87,14 @@ void train_and_run_main() {
     std::mt19937 g(rd());
     std::shuffle(set.begin(), set.end(), g);
 	
-	double rate = TRAIN_RATE;
+	double rate = START_TRAIN_RATE;
 	for (int i = 0; i < TRAIN_SET_SIZE; ++i) {
 		std::cout << "Train " << i << " / " << TRAIN_SET_SIZE << std::endl;
 		std::vector<double> input = { set[i] };
 		std::vector<double> output = { get_function(set[i]) };
 		
-		rate = std::fabs(network.train_error(TRAIN_ALGO_ID, input, output, rate));
-		rate = rate <= TRAIN_RATE ? TRAIN_RATE : rate;
+		rate = std::fabs(network.train_error(TRAIN_ALGO_ID, input, output, rate)) * SCALE_TRAIN_RATE;
+		rate = rate <= START_TRAIN_RATE ? START_TRAIN_RATE : rate;
 	}
 	
 	int passed_amount = 0;
@@ -125,11 +125,10 @@ void train_and_run_main() {
 // Perform train of the network & serialize
 void train_and_serialize() {
 	
-	NNSpace::SLNetwork network(1, NETWORK_DEEP_SIZE, 1);
+	NNSpace::MLNetwork network(NETWORK_TOPO);
 	network.initialize(INIT_ALGO_ID);
 	network.setEnableOffsets(NETWORK_ENABLE_OFFSETS);
-	network.setLayerActivator(1, new NNSpace::NETWORK_ACTIVATOR1_FUNCTION());
-	network.setLayerActivator(2, new NNSpace::NETWORK_ACTIVATOR2_FUNCTION());
+	network.setActivator(new NNSpace::NETWORK_ACTIVATOR_FUNCTION());
 	
 	std::vector<double> set = get_train_set();
 	
@@ -137,14 +136,14 @@ void train_and_serialize() {
     std::mt19937 g(rd());
     std::shuffle(set.begin(), set.end(), g);
 	
-	double rate = 1.0;
+	double rate = START_TRAIN_RATE;
 	for (int i = 0; i < TRAIN_SET_SIZE; ++i) {
 		std::cout << "Train " << i << " / " << TRAIN_SET_SIZE << std::endl;
 		std::vector<double> input = { set[i] };
 		std::vector<double> output = { get_function(set[i]) };
 		
-		rate = std::fabs(network.train_error(TRAIN_ALGO_ID, input, output, rate));
-		rate = rate <= TRAIN_RATE ? TRAIN_RATE : rate;
+		rate = std::fabs(network.train_error(TRAIN_ALGO_ID, input, output, rate)) * SCALE_TRAIN_RATE;
+		rate = rate <= START_TRAIN_RATE ? START_TRAIN_RATE : rate;
 	}
 	
 	std::cout << "Serializing network to " << NETWORK_SERIALIZE_PATH << std::endl;
@@ -162,7 +161,7 @@ void train_and_serialize() {
 // Deserialize data and run
 void deserialize_and_run() {
 	
-	NNSpace::SLNetwork network(1, NETWORK_DEEP_SIZE, 1);
+	NNSpace::MLNetwork network(NETWORK_TOPO);
 	
 	std::cout << "Deserializing network from " << NETWORK_SERIALIZE_PATH << std::endl;
 	std::ifstream ifs;
@@ -203,7 +202,7 @@ void deserialize_and_run() {
 	std::cout << "RESULT: " << passed_amount << '/' << TEST_SET_SIZE << " [" << (100.0 * (double) passed_amount / (double) TEST_SET_SIZE) << "%] avg: " << avg_sqr_error << std::endl;
 };
 
-// bash c.sh "-O3" src/main_approx
+// bash c.sh "-O3" src/approx_multilayer
 
 int main(int argc, char** argv) {
 

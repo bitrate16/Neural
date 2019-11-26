@@ -72,7 +72,15 @@ namespace NNSpace {
 				throw std::runtime_error("Invalid layer number");
 		};
 		
-		void randomize() {
+		virtual void setActivator(NetworkFunction* function) {
+			delete middle_act;
+			delete output_act;
+			
+			middle_act = function;
+			output_act = function->clone();
+		};
+		
+		void initialize(int id) {
 			double v1_MAX = 1.0 / RAND_MAX;
 			
 			for (int i = 0; i < dimensions.input; ++i)
@@ -96,7 +104,7 @@ namespace NNSpace {
 		
 		// Teach using backpropagation
 		// Assume input, output_teach size match input, output layer size
-		void train(const std::vector<double>& input, const std::vector<double>& output_teach, double rate) {
+		void train(int id, const std::vector<double>& input, const std::vector<double>& output_teach, double rate) {
 			std::vector<double> middle_raw(dimensions.middle);
 			std::vector<double> middle(dimensions.middle);
 			std::vector<double> output_raw(dimensions.output);
@@ -184,7 +192,7 @@ namespace NNSpace {
 				output_offset[i] += do_offset[i];
 		};
 		
-		double train_error(const std::vector<double>& input, const std::vector<double>& output_teach, double rate) {
+		double train_error(int id, const std::vector<double>& input, const std::vector<double>& output_teach, double rate) {
 			std::vector<double> middle_raw(dimensions.middle);
 			std::vector<double> middle(dimensions.middle);
 			std::vector<double> output_raw(dimensions.output);
@@ -193,7 +201,7 @@ namespace NNSpace {
 			
 			// input -> middle
 			for (int j = 0; j < dimensions.middle; ++j) {
-				middle_raw[j] = middle_offset[j];
+				middle_raw[j] = enable_offsets ? middle_offset[j] : 0;
 				
 				for (int i = 0; i < dimensions.input; ++i)
 					middle_raw[j] += input[i] * W01[i][j];
@@ -204,7 +212,7 @@ namespace NNSpace {
 			
 			// middle -> output
 			for (int j = 0; j < dimensions.output; ++j) {
-				output_raw[j] = output_offset[j];
+				output_raw[j] = enable_offsets ? output_offset[j] : 0;
 				
 				for (int i = 0; i < dimensions.middle; ++i)
 					output_raw[j] += middle[i] * W12[i][j];
@@ -275,6 +283,57 @@ namespace NNSpace {
 			for (int i = 0; i < dimensions.output; ++i)
 				output_offset[i] += do_offset[i];
 			
+			/*
+			// PRINT
+			std::cout << "sigmas:" << std::endl;
+			for (int i = 0; i < sigma_middle.size(); ++i)
+				std::cout << sigma_middle[i] << ' ';
+			std::cout << std::endl;
+			for (int i = 0; i < sigma_output.size(); ++i)
+				std::cout << sigma_output[i] << ' ';
+			std::cout << std::endl;
+			std::cout << "d offsets:" << std::endl;
+			for (int i = 0; i < dm_offset.size(); ++i)
+				std::cout << dm_offset[i] << ' ';
+			std::cout << std::endl;
+			for (int i = 0; i < do_offset.size(); ++i)
+				std::cout << do_offset[i] << ' ';
+			std::cout << std::endl;
+			std::cout << "offsets:" << std::endl;
+			for (int i = 0; i < middle_offset.size(); ++i)
+				std::cout << middle_offset[i] << ' ';
+			std::cout << std::endl;
+			for (int i = 0; i < output_offset.size(); ++i)
+				std::cout << output_offset[i] << ' ';
+			std::cout << std::endl;
+			std::cout << "dW:" << std::endl;
+			for (int i = 0; i < dW01.size(); ++i) {
+				for (int j = 0; j < dW01[i].size(); ++j)
+					std::cout << dW01[i][j] << ' ';
+				std::cout << std::endl;
+			}
+			std::cout << std::endl;
+			for (int i = 0; i < dW12.size(); ++i) {
+				for (int j = 0; j < dW12[i].size(); ++j)
+					std::cout << dW12[i][j] << ' ';
+				std::cout << std::endl;
+			}
+			std::cout << std::endl;
+			std::cout << "W:" << std::endl;
+			for (int i = 0; i < W01.size(); ++i) {
+				for (int j = 0; j < W01[i].size(); ++j)
+					std::cout << W01[i][j] << ' ';
+				std::cout << std::endl;
+			}
+			std::cout << std::endl;
+			for (int i = 0; i < W12.size(); ++i) {
+				for (int j = 0; j < W12[i].size(); ++j)
+					std::cout << W12[i][j] << ' ';
+				std::cout << std::endl;
+			}
+			std::cout << std::endl;\
+			*/
+			
 			return out_error_value / (double) dimensions.output;
 		};
 		
@@ -319,7 +378,7 @@ namespace NNSpace {
 			// 8. one by one offsets
 			// 9. enable offsets
 			os << 3;
-			os << ' ';
+			os << std::endl;
 			os << dimensions.input;
 			os << ' ';
 			os << dimensions.middle;

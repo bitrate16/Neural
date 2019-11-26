@@ -1,0 +1,9 @@
+
+bin
+*.out
+src/test_pak
+output
+netout2.txt
+netout1.txt
+bin/src/main
+bin/src/main
