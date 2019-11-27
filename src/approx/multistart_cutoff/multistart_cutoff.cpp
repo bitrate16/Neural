@@ -152,5 +152,29 @@ int main(int argc, char** argv) {
 	std::vector<NNSpace::MLNetwork> networks;
 	generate_random_weight_networks(networks, dimensions, activator, 0, PRINT_BOOL);
 	
+	// 4. Loop
+	int step = 0;
+	int N = NNSpace::log2(a);
+	while (step < N) {
+		// 5. Calculate error value for each network now (V<b>)
+		
+		// 6. Perform teaching of all networks
+		
+		// 7. Calculate error value for each network now (V<a>)
+		
+		// 8. Calculate Average error value now (E)
+		
+		// 8. Order networks by error gradient (descending)
+		
+		// 9. Order networks by average error value (ascending)
+		
+		// 10. Select Ai networks and remove
+		
+	}
+	
+	// 11. Calculate resulting network error value & print
+	
+	// -- Time record stop here --
+	
 	return 0;
 };
