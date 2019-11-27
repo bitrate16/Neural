@@ -129,28 +129,29 @@ namespace NNSpace {
 			}
 			
 			// Offsets correction
-			std::vector<std::vector<double>> doffset;
-			
-			doffset.resize(dimensions.size() - 1);
-			for (int i = 0; i < dimensions.size() - 1; ++i)
-				doffset[i].resize(dimensions[i + 1]);
-			
+			std::vector<std::vector<double>> doffset(dimensions.size() - 1);
 			// Sigmas
 			std::vector<std::vector<double>> sigma(dimensions.size() - 1);
-			for (int i = 0; i < dimensions.size() - 1; ++i)
+			
+			for (int i = 0; i < dimensions.size() - 1; ++i) {
+				doffset[i].resize(dimensions[i + 1]);
 				sigma[i].resize(dimensions[i + 1]);
+			}
 			
 			// Calculate sigmas
-			for (int i = 0; i < dimensions.back(); ++i) // [(dimensions.size() - 1) - 1] // -2
-				sigma.back()[i] = (output_teach[i] - layers.back()[i]) * activators.back()->derivative(layers_raw.back()[i]);
+			for (int i = 0; i < dimensions.back(); ++i) { // K-2, K-1
+				double dv = output_teach[i] - layers.back()[i];
+				sigma.back()[i] = dv * activators.back()->derivative(layers_raw.back()[i]);
+			}
 			
-			for (int k = (dimensions.size() - 1) - 2; k >= 0; --k) // -3
+			for (int k = (dimensions.size() - 1) - 2; k >= 0; --k) // K-3, K-2,, ..
 				for (int i = 0; i < dimensions[k + 1]; ++i) {
 					for (int j = 0; j < dimensions[k + 2]; ++j)
 						sigma[k][i] += sigma[k + 1][j] * W[k + 1][i][j];
 					
-					sigma[k][i] *= activators[k]->derivative(layers_raw[k + 1 - 1][i]);
-				}
+					sigma[k][i] *= activators[k + 0]->derivative(layers_raw[k + 1 - 1][i]); // layers_raw[k + 1]
+				} // checked?
+				// XXX: Debug with print sigmas step by step for same seed
 			
 			// Calculate weights correction
 			for (int k = 0; k < dimensions.size() - 1; ++k)
@@ -165,8 +166,8 @@ namespace NNSpace {
 					
 			// Balance weights
 			for (int k = 0; k < dimensions.size() - 1; ++k)
-				for (int i = 0; i < dimensions[k]; ++i)
-					for (int j = 0; j < dimensions[k + 1]; ++j)
+				for (int i = 0; i < dW[k].size(); ++i)
+					for (int j = 0; j < dW[k][i].size(); ++j)
 						W[k][i][j] += dW[k][i][j];
 					
 			// Balance offsets
@@ -225,7 +226,7 @@ namespace NNSpace {
 			for (int i = 0; i < dimensions.back(); ++i) { // K-2, K-1
 				double dv = output_teach[i] - layers.back()[i];
 				sigma.back()[i] = dv * activators.back()->derivative(layers_raw.back()[i]);
-				out_error_value += dv;
+				out_error_value += dv * dv;
 			}
 			
 			for (int k = (dimensions.size() - 1) - 2; k >= 0; --k) // K-3, K-2,, ..
@@ -342,13 +343,16 @@ namespace NNSpace {
 			// 2n+4. enable offsets
 			os << dimensions.size();
 			os << std::endl;
+			os << std::endl;
 			
 			for (int k = 0; k < dimensions.size(); ++k)
 				os << dimensions[k] << ' ';
 			os << std::endl;
+			os << std::endl;
 			
 			for (int i = 0; i < activators.size(); ++i)
 				os << (int) activators[i]->getType() << ' ';
+			os << std::endl;
 			os << std::endl;
 			
 			for (int k = 0; k < dimensions.size() - 1; ++k) {
@@ -357,12 +361,14 @@ namespace NNSpace {
 						os << W[k][i][j] << ' ';
 				os << std::endl;
 			}
+			os << std::endl;
 			
 			for (int i = 0; i < dimensions.size() - 1; ++i) {
 				for (int j = 0; j < dimensions[i + 1]; ++j)
 					os << offsets[i][j] << ' ';
 				os << std::endl;
 			}
+			os << std::endl;
 			
 			os << enable_offsets;
 		};

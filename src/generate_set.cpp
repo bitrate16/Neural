@@ -8,6 +8,7 @@
 // g++ -O3 src/generate_set.cpp -o bin/generate_set -Iinclude && ./bin/generate_set
 // ./bin/generate_set 0.0 1.0 10000 "sin(t * 3.14 * 2.0) * 0.5 + 0.5" set.nse
 
+
 int main(int argc, char** argv) {
 	double start, end;
 	int amount;

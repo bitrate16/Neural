@@ -112,7 +112,7 @@ namespace NNSpace {
 			
 			// input -> middle
 			for (int j = 0; j < dimensions.middle; ++j) {
-				middle_raw[j] = enable_offsets ? middle_offset[j] : 0.0;
+				middle_raw[j] = enable_offsets ? middle_offset[j] : 0;
 				
 				for (int i = 0; i < dimensions.input; ++i)
 					middle_raw[j] += input[i] * W01[i][j];
@@ -123,7 +123,7 @@ namespace NNSpace {
 			
 			// middle -> output
 			for (int j = 0; j < dimensions.output; ++j) {
-				output_raw[j] = enable_offsets ? output_offset[j] : 0.0;
+				output_raw[j] = enable_offsets ? output_offset[j] : 0;
 				
 				for (int i = 0; i < dimensions.middle; ++i)
 					output_raw[j] += middle[i] * W12[i][j];
@@ -133,8 +133,10 @@ namespace NNSpace {
 				
 			// Calculate sigma (error value) for output layer
 			std::vector<double> sigma_output(dimensions.output);
-			for (int i = 0; i < dimensions.output; ++i)
-				sigma_output[i] = (output_teach[i] - output[i]) * output_act->derivative(output_raw[i]);
+			for (int i = 0; i < dimensions.output; ++i) {
+				double dv = output_teach[i] - output[i];
+				sigma_output[i] = dv * output_act->derivative(output_raw[i]);
+			}
 			
 			// Calculate bias correction for middle-output
 			std::vector<std::vector<double>> dW12;
@@ -225,7 +227,7 @@ namespace NNSpace {
 			for (int i = 0; i < dimensions.output; ++i) {
 				double dv = output_teach[i] - output[i];
 				sigma_output[i] = dv * output_act->derivative(output_raw[i]);
-				out_error_value += dv;
+				out_error_value += dv * dv;
 			}
 			
 			// Calculate bias correction for middle-output
@@ -379,21 +381,25 @@ namespace NNSpace {
 			// 9. enable offsets
 			os << 3;
 			os << std::endl;
+			os << std::endl;
 			os << dimensions.input;
 			os << ' ';
 			os << dimensions.middle;
 			os << ' ';
 			os << dimensions.output;
 			os << std::endl;
+			os << std::endl;
 			
 			os << (int) middle_act->getType();
 			os << ' ';
 			os << (int) output_act->getType();
 			os << std::endl;
+			os << std::endl;
 			
 			for (int i = 0; i < dimensions.input; ++i)
 				for (int j = 0; j < dimensions.middle; ++j) 
 					os << W01[i][j] << ' ';
+			os << std::endl;
 			os << std::endl;
 			
 			for (int i = 0; i < dimensions.middle; ++i)
@@ -407,6 +413,7 @@ namespace NNSpace {
 			
 			for (int i = 0; i < dimensions.output; ++i)
 				os << output_offset[i] << ' ';
+			os << std::endl;
 			os << std::endl;
 			
 			os << enable_offsets;
