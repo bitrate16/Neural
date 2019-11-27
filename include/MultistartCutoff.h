@@ -365,6 +365,28 @@ namespace NNSpace {
 		}
 	};
 
+	// SUM [ e^2 ] / amount
+	long double calculate_square_error(std::vector<double>& error, NNSpace::MLNetwork& network, std::vector<linear_set_point>& set, bool print = 0) {
+		if (print)
+			std::cout << "[calculate_square_error] Calculating square error value";
+		
+		std::vector<double> input;
+		std::vector<double> output;
+		
+		long double error = 0;
+		
+		for (int i = 0; i < set.size(); ++i) {
+			input[0] = set[i].x;
+			output = network.run(input);
+			
+			long double dv = set[i].y - output[0];
+			error += dv * dv;
+		}
+		
+		return dv / (double) set.size();
+	}
+	
+	// SUM [ e ] / amount
 	long double calculate_linear_error(std::vector<double>& error, NNSpace::MLNetwork& network, std::vector<linear_set_point>& set, bool print = 0) {
 		if (print)
 			std::cout << "[calculate_linear_error] Calculating linear error value";
@@ -372,12 +394,17 @@ namespace NNSpace {
 		std::vector<double> input;
 		std::vector<double> output;
 		
+		long double error = 0;
 		
 		for (int i = 0; i < set.size(); ++i) {
 			input[0] = set[i].x;
 			output = network.run(input);
 			
+			long double dv = set[i].y - output[0];
+			error += dv;
 		}
+		
+		return dv / (double) set.size();
 	}
 
 	// Functions without files
