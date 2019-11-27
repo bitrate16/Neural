@@ -1,8 +1,9 @@
 import matplotlib.pyplot as plt
+import sys
 
 X, Y = [], []
 
-if len(sys.args) < 2:
+if len(sys.argv) < 2:
 	print 'Filename expected'
 	sys.exit(0)
 	
@@ -16,7 +17,7 @@ for line in file:
 	X.append(values[0])
 	Y.append(values[1])
 
-plt.plot(X, Y)
+plt.plot(X, Y, 'ro')
 plt.show()
 
 # Does plotting specified neural test set
