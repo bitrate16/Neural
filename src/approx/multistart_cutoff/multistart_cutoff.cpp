@@ -1,9 +1,22 @@
 #include <iostream>
 #include <string>
+#include <cstring>
 
 #include "MultistartCutoff.h"
 
-int main() {
+#ifdef ENABLE_PRINT
+	#define PRINT_BOOL 1
+#else
+	#define PRINT_BOOL 0
+#endif
+
+// g++ -O3 src/approx/multistart_cutoff/multistart_cutoff.cpp -o bin/multistart_cutoff -Iinclude -lstdc++fs && ./bin/multistart_cutoff
+
+// ./bin/generate_set 0.0 1.0 10000 "sin(t * 2.0 * 3.14) * 0.5 + 0.5" input/train.nse
+// ./bin/generate_set 0.0 1.0 100 "sin(t * 2.0 * 3.14) * 0.5 + 0.5" input/test.nse
+// ./bin/multistart_cutoff 4 1 3 3 1 TanH input/teach.nse input/test.nse
+
+int main(int argc, char** argv) {
 	
 	// The source for this algorithm is based on < - - insert diploma here - - > [1]
 	
@@ -68,19 +81,76 @@ int main() {
 	// > split_set.cpp         - splits given set into several subsets
 	// > calculate_mean.cpp    - calculate error value on passed network 
 	
-	// input - Graph Topo (G, T)
-	// G - Oriented graph (G.l - leyars, G.d - number of layers)
-	// T - Activator functions set.
-
+	// Input:
+	// 1. layers count [L].
+	// 2+i. layer i size.
+	// 2+L. activator function (TanH, Sigmoid, Linear).
+	// 3+L. input train set.
+	// 4+L. input test set.
+	
+	// Output: error value for test set on produced network.
+	
+	
+	// 0. Parse input
 	if (argc < 2) {
 		std::cout << "Not enough arguments" << std::endl;
 		return 0;
 	}
 	
-	int 
+	int L = std::stoi(argv[1]);
 	
-	// Generate set of networks with specified parameters using 
-	//  > generate_networks
+	if (argc < L + 5)  {
+		std::cout << "Not enough arguments" << std::endl;
+		return 0;
+	}
+	
+	std::vector<int> dimensions(L);
+	
+	for (int i = 0; i < dimensions.size(); ++i)
+		dimensions[i] = std::stoi(argv[i + 2]);
+	
+	NNSpace::ActivatorType activator;
+	if (strcmp("TanH", argv[L + 2]) == 0)
+		activator = NNSpace::ActivatorType::TANH;
+	else if (strcmp("Sigmoid", argv[L + 2]) == 0)
+		activator = NNSpace::ActivatorType::SIGMOID;
+	else if (strcmp("Linear", argv[L + 2]) == 0)
+		activator = NNSpace::ActivatorType::LINEAR;
+	else {
+		std::cout << "Invalid activator type" << std::endl;
+		return 0;
+	}
+	
+	std::string teach_set_file = argv[L + 3];
+	std::string train_set_file = argv[L + 4];
 	
 	
+	// 1. Read train & test set
+	std::vector<NNSpace::linear_set_point> train_set;
+	if (!NNSpace::read_linear_set(train_set, train_set_file, 0, PRINT_BOOL)) {
+		std::cout << "Failed reading train set" << std::endl;
+		return 0;
+	}
+	
+	std::vector<NNSpace::linear_set_point> test_set;
+	if (!NNSpace::read_linear_set(test_set, train_set_file, 0, PRINT_BOOL)) {
+		std::cout << "Failed reading test set" << std::endl;
+		return 0;
+	}
+	
+	// 2. Generate train subsets
+	int A = 0;
+	for (int i = 0; i < L - 1; ++i) 
+		A += dimensions[i] * dimensions[i + 1];
+	
+	std::vector<std::vector<NNSpace::linear_set_point>> train_set_set;
+	NNSpace::split_linear_set_base_2(train_set_set, train_set, A, 0, PRINT_BOOL);
+	
+	// -- Time record start here --
+	
+	// 3. Generate Networks
+	std::vector<NNSpace::MLNetwork> networks;
+	generate_random_weight_networks(networks, dimensions, activator, 0, PRINT_BOOL);
+	
+	return 0;
 };

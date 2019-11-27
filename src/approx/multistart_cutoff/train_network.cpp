@@ -10,7 +10,7 @@
 	#define PRINT_BOOL 0
 #endif
 
-// g++ -O3 src/multistart_cutoff/train_network.cpp -o bin/train_network -Iinclude -lstdc++fs && ./bin/train_network
+// g++ -O3 src/approx/multistart_cutoff/train_network.cpp -o bin/train_network -Iinclude -lstdc++fs && ./bin/train_network
 // ./bin/generate_set 0.0 1.0 1000 "sin(t * 3.14 * 2.0) * 0.5 + 0.5" input/train_set.nse
 // ./bin/train_network 0 output/networks input/train_set.mse
 

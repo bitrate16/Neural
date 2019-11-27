@@ -10,7 +10,7 @@
 	#define PRINT_BOOL 0
 #endif
 
-// g++ -O3 src/multistart_cutoff/generate_networks.cpp -o bin/generate_networks -Iinclude -lstdc++fs && ./bin/generate_networks
+// g++ -O3 src/approx/multistart_cutoff/generate_networks.cpp -o bin/generate_networks -Iinclude -lstdc++fs && ./bin/generate_networks
 // ./bin/generate_networks 4 1 3 3 1 TanH output/networks
 
 

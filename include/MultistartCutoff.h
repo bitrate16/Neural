@@ -18,6 +18,18 @@ namespace NNSpace {
 		double y; 
 	};
 	
+	// Utility to calculate log2
+	int log2(long n) {
+		if (n < 0)
+			return 0; // undefined
+		
+		int t = 0;
+		while (n >>= 1) 
+			++t;
+		
+		return t;
+	}
+	
 	// Generates set normally distributed (if set randomize = 1).
 	// Generating linear set on funciton Y = F(X).
 	// start <= X <= end,
@@ -33,7 +45,7 @@ namespace NNSpace {
 		}
 		
 		std::error_code ec;
-		if (!std::experimental::filesystem::create_directories(output_file, ec))
+		if (!std::experimental::filesystem::create_directories(std::experimental::filesystem::path(output_file).parent_path(), ec) && ec)
 			return 0;
 		
 		std::ofstream of;
@@ -168,7 +180,7 @@ namespace NNSpace {
 			std::cout << "[split_linear_set] Splitting set " << input_name << " into " << split_amount << " subsets to " << output_directory << std::endl;
 		
 		std::error_code ec;
-		if (!std::experimental::filesystem::create_directories(output_directory, ec))
+		if (!std::experimental::filesystem::create_directories(output_directory, ec) && ec)
 			return 0;
 		
 		std::vector<linear_set_point> input_set;
@@ -219,7 +231,34 @@ namespace NNSpace {
 		int part_size = set.size() / split_amount;
 		for (int i = 0; i < split_amount; ++i) {
 			set_set[i].resize(part_size);
-			set_set.assign(&set[i * part_size], &set[(i + 1) * part_size]);
+			set_set[i].assign(&set[i * part_size], &set[(i + 1) * part_size]);
+		}
+	};
+	
+	void split_linear_set_base_2(std::vector<std::vector<linear_set_point>>& set_set, std::vector<linear_set_point>& set, int A, bool randomize_before_split = 1, bool print = 0) {
+		
+		// Ci = C1 * 2 ^ (i-1)
+		// C1 = C / (2 ^ [log2(A)] - 1)
+		
+		int C1 = set.size() / ((1 << log2(A)) - 1);
+		int Ci = C1;
+		int N = log2(A);
+		int current = 0;
+		int current_size = C1;
+		
+		if (print) 
+			std::cout << "[split_linear_set_base_2] Splitting set, C = " << set.size() << ", C1 = " << C1 << ", N = " << N << ", Cn = " << (Ci << (N - 1)) << std::endl;
+		
+		// Generate splits
+		set_set.resize(N);
+		for (int i = 0; i < N; ++i) {
+			// std::cout << "Ci = " << Ci << ", current = " << current << ", current_size = " << current_size << std::endl;
+			set_set[i].resize(current_size);
+			set_set[i].assign(&set[current], &set[current + current_size]);
+			int Cj       = C1 << i + 1;
+			current     += current_size;
+			current_size = Cj;
+			Ci           = Cj;
 		}
 	};
 	
@@ -259,7 +298,7 @@ namespace NNSpace {
 	bool generate_random_weight_networks(const std::vector<int>& dimensions, const std::string& output_directory, ActivatorType activator = ActivatorType::LINEAR, bool enable_offsets = 0, bool print = 0) {
 		
 		std::error_code ec;
-		if (!std::experimental::filesystem::create_directories(output_directory, ec))
+		if (!std::experimental::filesystem::create_directories(output_directory, ec) && ec)
 			return 0;
 		
 		// Number of topos is A = n * W,
@@ -301,11 +340,6 @@ namespace NNSpace {
 	};
 	
 	void generate_random_weight_networks(std::vector<NNSpace::MLNetwork>& networks, const std::vector<int>& dimensions, ActivatorType activator = ActivatorType::LINEAR, bool enable_offsets = 0, bool print = 0) {
-		
-		std::error_code ec;
-		if (!std::experimental::filesystem::create_directories(output_directory, ec))
-			return 0;
-		
 		// Number of topos is A = n * W,
 		//                    n - count of input layers.
 		//                    W - count of weights.
@@ -319,18 +353,16 @@ namespace NNSpace {
 		networks.resize(num_topos);
 		for (int i = 0; i < num_topos; ++i) {
 			networks[i] = NNSpace::MLNetwork(dimensions);
-			network.setEnableOffsets(enable_offsets);
-			network.setActivator(getActivatorByType(activator));
+			networks[i].setEnableOffsets(enable_offsets);
+			networks[i].setActivator(getActivatorByType(activator));
 			
 			// ...
-			network.initialize(0);
+			networks[i].initialize(0);
 			// ...
 			
 			if (print)
 				std::cout << "[generate_random_weight_networks] Generating # " << i << std::endl;
 		}
-		
-		return 1;
 	};
 	
 	// Removes all networks in the specified directory
@@ -366,7 +398,7 @@ namespace NNSpace {
 	};
 
 	// SUM [ e^2 ] / amount
-	long double calculate_square_error(std::vector<double>& error, NNSpace::MLNetwork& network, std::vector<linear_set_point>& set, bool print = 0) {
+	long double calculate_square_error(NNSpace::MLNetwork& network, std::vector<linear_set_point>& set, bool print = 0) {
 		if (print)
 			std::cout << "[calculate_square_error] Calculating square error value";
 		
@@ -383,11 +415,11 @@ namespace NNSpace {
 			error += dv * dv;
 		}
 		
-		return dv / (double) set.size();
+		return error / (double) set.size();
 	}
 	
 	// SUM [ e ] / amount
-	long double calculate_linear_error(std::vector<double>& error, NNSpace::MLNetwork& network, std::vector<linear_set_point>& set, bool print = 0) {
+	long double calculate_linear_error(NNSpace::MLNetwork& network, std::vector<linear_set_point>& set, bool print = 0) {
 		if (print)
 			std::cout << "[calculate_linear_error] Calculating linear error value";
 		
@@ -404,7 +436,7 @@ namespace NNSpace {
 			error += dv;
 		}
 		
-		return dv / (double) set.size();
+		return error / (double) set.size();
 	}
 
 	// Functions without files

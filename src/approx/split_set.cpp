@@ -10,7 +10,7 @@
 	#define PRINT_BOOL 0
 #endif
 
-// g++ -O3 src/split_set.cpp -o bin/split_set -Iinclude -lstdc++fs && ./bin/split_set
+// g++ -O3 src/approx/split_set.cpp -o bin/split_set -Iinclude -lstdc++fs && ./bin/split_set
 // ./bin/split_set input/train_set.nse input/train_set 10
 
 

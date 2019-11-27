@@ -10,7 +10,7 @@
 	#define PRINT_BOOL 0
 #endif
 
-// g++ -O3 src/multistart_cutoff/calculate_error.cpp -o bin/calculate_error -Iinclude -lstdc++fs && ./bin/calculate_error
+// g++ -O3 src/approx/multistart_cutoff/calculate_error.cpp -o bin/calculate_error -Iinclude -lstdc++fs && ./bin/calculate_error
 // ./bin/generate_set 0.0 1.0 100 "sin(t * 3.14 * 2.0) * 0.5 + 0.5" input/test_set.nse
 // ./bin/calculate_error 0 output/networks input/test_set.nse
 

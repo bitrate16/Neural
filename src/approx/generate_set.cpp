@@ -5,7 +5,13 @@
 #include "math_func.h"
 #include "math_func_util.h"
 
-// g++ -O3 src/generate_set.cpp -o bin/generate_set -Iinclude && ./bin/generate_set
+#ifdef ENABLE_PRINT
+	#define PRINT_BOOL 1
+#else
+	#define PRINT_BOOL 0
+#endif
+
+// g++ -O3 src/generate_set.cpp -o bin/generate_set -Iinclude -lstdc++fs && ./bin/generate_set
 // ./bin/generate_set 0.0 1.0 10000 "sin(t * 3.14 * 2.0) * 0.5 + 0.5" set.nse
 
 
@@ -81,7 +87,7 @@ int main(int argc, char** argv) {
 	NNSpace::generate_linear_set([&values, &functions, &opt](double t) {
 		values["t"] = t;
 		return opt->evaluate(values, functions);
-	}, start, end, amount, filename, 1, 1);
+	}, start, end, amount, filename, 1, PRINT_BOOL);
 	
 	delete opt;
 };
