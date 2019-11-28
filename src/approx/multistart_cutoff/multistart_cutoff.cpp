@@ -293,6 +293,7 @@ int main(int argc, char** argv) {
 
 	// 10. Calculate resulting network error value & print
 	long double error_value_result = NNSpace::calculate_linear_error(networks[0], test_set, PRINT_BOOL);
+	
 	std::cout << "Result error value: " << error_value_result << std::endl;
 	std::cout << "Result learning time: " << std::chrono::duration_cast<std::chrono::milliseconds>(timestamp_2 - timestamp_1).count() << "ms" << std::endl;
 	std::cout << "Result train iterations: " << learn_iterations_count << std::endl;

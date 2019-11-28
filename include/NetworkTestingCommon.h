@@ -371,6 +371,20 @@ namespace NNSpace {
 		}
 	};
 	
+	// Generates single nework, initialize it with passed dispersion value
+	void generate_random_weight_network(NNSpace::MLNetwork& network, const std::vector<int>& dimensions, ActivatorType activator = ActivatorType::LINEAR, double dispersion = 0, bool enable_offsets = 0, bool print = 0) {
+		network = NNSpace::MLNetwork(dimensions);
+		network.setEnableOffsets(enable_offsets);
+		network.setActivator(getActivatorByType(activator));
+		
+		// ...
+		network.initialize(dispersion);
+		// ...
+		
+		if (print)
+			std::cout << "[generate_random_weight_network] Generating single network" << std::endl;
+	};
+	
 	// Removes all networks in the specified directory
 	int remove_directory(const std::string& directory, bool print = 0) {
 		if (print)
