@@ -10,6 +10,7 @@
 #include <random>
 #include "Network.h"
 #include "MultiLayerNetwork.h"
+#include "mnist/mnist_reader.hpp"
 
 // Contains util functions used in comparing different learning algorithms.
 // Used in comparing speed af learning for Multistart algorithm, 
@@ -20,6 +21,12 @@ namespace NNSpace {
 	struct linear_set_point { 
 		double x; 
 		double y; 
+	};
+	
+	// Represents single composite set entry
+	struct compose_pair {
+		std::vector<double> x;
+		std::vector<double> y;
 	};
 	
 	// Utility to calculate log2
@@ -399,7 +406,7 @@ namespace NNSpace {
 			return;
 		
 		// Start training from calculating error value on the first test like it was continuous train loop.
-		int rate = 0.0;
+		double rate = 0.0;
 		
 		// Calculate next step error
 		{
@@ -414,12 +421,46 @@ namespace NNSpace {
 		}
 		
 		// Keep teaching
-		for (int i = 1; i < train_set.size(); ++i) {
+		for (int i = 0; i < train_set.size(); ++i) {
 			if (print)
 				std::cout << "[train_network_backpropagation] Train " << i << " / " << train_set.size() << std::endl;
 			
 			// XXX: implement other training algorithm
 			rate = network.train_error(id, { train_set[i].x }, { train_set[i].y }, rate);
+		}
+	};
+
+	// Train passed network on passed set.
+	void train_compose_network_backpropagation(NNSpace::MLNetwork& network, std::vector<compose_pair>& train_set, int id = 0, bool print = 0) {
+		if (train_set.size() == 0)
+			return;
+		
+		// Start training from calculating error value on the first test like it was continuous train loop.
+		double rate = 0.0;
+		
+		// Calculate next step error
+		{
+			std::vector<double> output = network.run(train_set[0].x);
+			
+			for (int i = 0; i < train_set[0].y.size(); ++i) {
+				double dv = train_set[0].y[i] - output[i];
+				
+				if (id == 0)
+					rate += dv * dv;
+				else if (id == 1)
+					rate += std::fabs(dv);
+			}
+			
+			rate /= (double) train_set[0].y.size();
+		}
+		
+		// Keep teaching
+		for (int i = 0; i < train_set.size(); ++i) {
+			if (print)
+				std::cout << "[train_compose_network_backpropagation] Train " << i << " / " << train_set.size() << std::endl;
+			
+			// XXX: implement other training algorithm
+			rate = network.train_error(id, train_set[i].x, train_set[i].y, rate);
 		}
 	};
 
@@ -464,6 +505,293 @@ namespace NNSpace {
 		
 		return error / (double) set.size();
 	}
+
+	// SUM [ SUM [ | output[i] - test[i] | ] ^ 2 ] / amount
+	long double calculate_compose_square_error(NNSpace::MLNetwork& network, std::vector<compose_pair>& set, bool print = 0) {
+		if (print)
+			std::cout << "[calculate_square_error] Calculating square error value" << std::endl;
+		
+		if (set.size() == 0)
+			return 0.0;
+		
+		std::vector<double> output;
+		
+		long double error = 0;
+		
+		for (int i = 0; i < set.size(); ++i) {
+			output = network.run(set[i].x);
+			
+			// Error is summary from entire layer
+			long double dv = 0.0;
+			
+			for (int i = 0; i < set[i].x.size(); ++i) 
+				dv += std::fabs(set[i].y[i] - output[i]);
+			
+			error += dv * dv;
+		}
+		
+		return error / (double) set.size();
+	}
+	
+	// SUM [ SUM [ | output[i] - test[i] | ] ] / amount
+	long double calculate_compose_linear_error(NNSpace::MLNetwork& network, std::vector<compose_pair>& set, bool print = 0) {
+		if (print)
+			std::cout << "[calculate_compose_linear_error] Calculating square error value" << std::endl;
+		
+		if (set.size() == 0)
+			return 0.0;
+		
+		std::vector<double> output;
+		
+		long double error = 0;
+		
+		for (int i = 0; i < set.size(); ++i) {
+			output = network.run(set[i].x);
+			
+			// Error is summary from entire layer
+			
+			for (int i = 0; i < set[i].x.size(); ++i) 
+				error += std::fabs(set[i].y[i] - output[i]);
+		}
+		
+		return error / (double) set.size();
+	}
+
+	// - - - - M U L T I D I M E N S I O N A L - - - -
+
+	// Split existing MNIST dataset into subsets
+	void split_compose_set_base_2(std::vector<std::vector<compose_pair>>& set_set, std::vector<compose_pair>& set, int A, bool randomize_before_split = 1, bool print = 0) {
+		
+		// Ci = C1 * 2 ^ (i-1)
+		// C1 = C / (2 ^ [log2(A)] - 1)
+		
+		int C1 = set.size() / ((1 << log2(A)) - 1);
+		int Ci = C1;
+		int N = log2(A);
+		int current = 0;
+		int current_size = C1;
+		
+		if (print) 
+			std::cout << "[split_linear_set_base_2] Splitting set, C = " << set.size() << ", C1 = " << C1 << ", N = " << N << ", Cn = " << (Ci << (N - 1)) << std::endl;
+		
+		// Generate splits
+		set_set.resize(N);
+		for (int i = 0; i < N; ++i) {
+			// std::cout << "Ci = " << Ci << ", current = " << current << ", current_size = " << current_size << std::endl;
+			set_set[i].resize(current_size);
+			set_set[i].assign(&set[current], &set[current + current_size]);
+			int Cj       = C1 << i + 1;
+			current     += current_size;
+			current_size = Cj;
+			Ci           = Cj;
+		}
+	};
+	
+	// - - - - M N I S T - - - -
+	
+	// Convert MNIST learning dataset to network-acceptable vector of doubles
+	void convert_mnist_learn(std::vector<compose_pair>& set, mnist::MNIST_dataset<std::vector, std::vector<uint8_t>, uint8_t>& dataset, int label_dimensions) {
+		set.resize(dataset.training_images.size());
+		
+		for (int i = 0; i < dataset.training_images.size(); ++i) {
+			set[i].x.resize(dataset.training_images[i].size());
+			set[i].y.resize(label_dimensions);
+			
+			for (int j = 0; j < dataset.training_images[i].size(); ++j) 
+				set[i].x[j] = (double) dataset.training_images[i][j] / 255.0;
+			
+			set[i].y[dataset.training_labels[i]] = 1.0;
+		}
+	};
+	
+	// SUM [ SUM [ | output[i] - test[i] | ] ^ 2 ] / amount
+	// test_size - is amount of testing elements to be used to calculate error.
+	// Assuming datased is shuffled.
+	// label_size - is amount of neurons encoding output signal.
+	//  In case of digits matching it is 10. (0 1 2 3 4 5 6 7 8 9)
+	long double calculate_mnist_square_error(NNSpace::MLNetwork& network, mnist::MNIST_dataset<std::vector, std::vector<uint8_t>, uint8_t>& dataset, int test_size, int label_size) {
+		if (test_size < 0)
+			test_size = 0;
+		if (test_size > dataset.test_images.size())
+			test_size = dataset.test_images.size() - 1;
+		
+		if (test_size == 0)
+			return 0.0;
+		
+		std::vector<double> input(dataset.test_images[0].size());
+		std::vector<double> output;
+		std::vector<double> test(label_size);
+		
+		long double error = 0;
+		
+		for (int i = 0; i < test_size; ++i) {
+			// Input
+			for (int k = 0; k < dataset.training_images[0].size(); ++k)
+				input[k] = (double) dataset.test_images[i][k] / 255.0;
+			
+			// Test
+			test[dataset.test_labels[i]] = 1.0;
+			
+			// Output
+			output = network.run(input);
+			
+			// Error is summary from entire layer
+			long double dv = 0.0;
+			
+			for (int k = 0; k < test.size(); ++k) 
+				dv += std::fabs(test[k] - output[k]);
+			
+			error += dv * dv;
+			
+			// Reset test
+			test[dataset.test_labels[i]] = 0.0;
+		}
+		
+		return error / (double) test_size;
+	};
+	
+	// SUM [ SUM [ | output[i] - test[i] | ] ] / amount
+	// test_size - is amount of testing elements to be used to calculate error.
+	// Assuming datased is shuffled.
+	// label_size - is amount of neurons encoding output signal.
+	//  In case of digits matching it is 10. (0 1 2 3 4 5 6 7 8 9)
+	long double calculate_mnist_linear_error(NNSpace::MLNetwork& network, mnist::MNIST_dataset<std::vector, std::vector<uint8_t>, uint8_t>& dataset, int test_size, int label_size) {
+		if (test_size < 0)
+			test_size = 0;
+		if (test_size > dataset.test_images.size())
+			test_size = dataset.test_images.size() - 1;
+		
+		if (test_size == 0)
+			return 0.0;
+		
+		std::vector<double> input(dataset.test_images[0].size());
+		std::vector<double> output;
+		std::vector<double> test(label_size);
+		
+		long double error = 0;
+		
+		for (int i = 0; i < test_size; ++i) {
+			// Input
+			for (int k = 0; k < dataset.test_images[i].size(); ++k)
+				input[k] = (double) dataset.test_images[i][k] / 255.0;
+			
+			// Test
+			test[dataset.test_labels[i]] = 1.0;
+			
+			// Output
+			output = network.run(input);
+			
+			// Error is summary from entire layer
+			long double dv = 0.0;
+			
+			for (int k = 0; k < test.size(); ++k) 
+				error += std::fabs(test[k] - output[k]);
+			
+			// Reset test
+			test[dataset.test_labels[i]] = 0.0;
+		}
+		
+		return error / (double) test_size;
+	};
+
+	// Train passed network on passed MNIST set.
+	void train_mnist_network_backpropagation(NNSpace::MLNetwork& network, mnist::MNIST_dataset<std::vector, std::vector<uint8_t>, uint8_t>& dataset, int start_index, int train_size, int label_size, int error_calc_id = 0) {
+		if (dataset.training_images.size() == 0 || train_size == 0 || start_index + train_size > dataset.training_images.size())
+			return;
+		
+		// Start training from calculating error value on the first test like it was continuous train loop.
+		double rate = 0.0;
+		
+		std::vector<double> input(dataset.training_images[start_index].size());
+		std::vector<double> output;
+		std::vector<double> test(label_size);
+		
+		// Calculate next step error
+		{
+			// Input
+			for (int k = 0; k < dataset.training_images[start_index].size(); ++k)
+				input[k] = (double) dataset.training_images[start_index][k] / 255.0;
+			
+			// Test
+			test[dataset.training_labels[start_index]] = 1.0;
+			
+			// Output
+			output = network.run(input);
+		
+			for (int i = 0; i < test.size(); ++i) {
+				double dv = test[i] - output[i];
+				
+				if (error_calc_id == 0)
+					rate += dv * dv;
+				else if (error_calc_id == 1)
+					rate += std::fabs(dv);
+			}
+			
+			rate /= (double) test.size();
+		}
+		
+		// Keep teaching
+		for (int i = start_index; i < start_index + train_size; ++i) {
+			if (i != 0) {				
+		
+				// Input
+				for (int k = 0; k < dataset.training_images[i].size(); ++k)
+					input[k] = (double) dataset.training_images[i][k] / 255.0;
+				
+				// Test
+				test[dataset.training_labels[i]] = 1.0;
+			}
+			
+			// XXX: implement other training algorithm
+			rate = network.train_error(error_calc_id, input, test, rate);
+			
+			test[dataset.training_labels[i]] = 0.0;
+		}
+	};
+
+	// amount_of_correct_answers / amount
+	// test_size - is amount of testing elements to be used to calculate error.
+	// Assuming datased is shuffled.
+	// label_size - is amount of neurons encoding output signal.
+	//  In case of digits matching it is 10. (0 1 2 3 4 5 6 7 8 9)
+	long double calculate_mnist_match_error(NNSpace::MLNetwork& network, mnist::MNIST_dataset<std::vector, std::vector<uint8_t>, uint8_t>& dataset, int test_size, int label_size) {
+		if (test_size < 0)
+			test_size = 0;
+		if (test_size > dataset.test_images.size())
+			test_size = dataset.test_images.size() - 1;
+		
+		if (test_size == 0)
+			return 0.0;
+		
+		std::vector<double> input(dataset.test_images[0].size());
+		std::vector<double> output;
+		
+		int correct = 0;
+		
+		for (int i = 0; i < test_size; ++i) {
+			// Input
+			for (int k = 0; k < dataset.training_images[0].size(); ++k)
+				input[k] = (double) dataset.test_images[i][k] / 255.0;
+						
+			// Output
+			output = network.run(input);
+			
+			int    max_match     = 0;
+			double max_match_ind = std::numeric_limits<double>::min();
+			
+			for (int i = 0; i < label_size; ++i)
+				if (output[i] > max_match) {
+					max_match = output[i];
+					max_match_ind = i;
+				}
+				
+			if (dataset.test_labels[i] == max_match_ind)
+				++correct;
+		}
+		
+		return (long double) correct / (long double) test_size;
+	};
+	
 
 	// Functions without files
 };

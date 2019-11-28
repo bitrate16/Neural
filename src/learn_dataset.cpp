@@ -185,7 +185,7 @@ void deserialize_and_run() {
 	std::cout << "RESULT: " << passed_amount << '/' << dataset.test_images.size() << " [" << (100.0 * (double) passed_amount / (double)dataset.test_images.size()) << "%]" << std::endl;
 };
 
-// bash c.sh "-O3" src/main
+// bash c.sh "-O3" src/learn_dataset
 
 int main(int argc, char** argv) {
 

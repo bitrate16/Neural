@@ -27,6 +27,9 @@ int main(int argc, char** argv) {
 	
 	// The source for this algorithm is based on < - - insert diploma here - - > [1]
 	
+	// This method is combined from standard backpropagation and 
+	//  cutting off the unperspective starts.
+	
 	// This example does multistart cutoff algorighm.
 	// Example of teaching neural network to approximate function Y = F(X)
 	//  Where X, Y are scalar.
