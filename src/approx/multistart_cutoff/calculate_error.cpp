@@ -2,7 +2,7 @@
 #include <string>
 #include <cstring>
 
-#include "MultistartCutoff.h"
+#include "NetworkTestingCommon.h"
 
 #ifdef ENABLE_PRINT
 	#define PRINT_BOOL 1

@@ -11,6 +11,10 @@
 #include "Network.h"
 #include "MultiLayerNetwork.h"
 
+// Contains util functions used in comparing different learning algorithms.
+// Used in comparing speed af learning for Multistart algorithm, 
+//  standard backpropagation algorithm and random search with learning algorithm.
+
 namespace NNSpace {
 	// Represents single point of linear test set for Y = F(X).
 	struct linear_set_point { 
@@ -235,6 +239,7 @@ namespace NNSpace {
 		}
 	};
 	
+	// Used to split set into 1/2, 1/4, 1/8, ...
 	void split_linear_set_base_2(std::vector<std::vector<linear_set_point>>& set_set, std::vector<linear_set_point>& set, int A, bool randomize_before_split = 1, bool print = 0) {
 		
 		// Ci = C1 * 2 ^ (i-1)
@@ -262,6 +267,7 @@ namespace NNSpace {
 		}
 	};
 	
+	// used to read set of sets into vector
 	bool read_linear_set_set(std::vector<std::vector<linear_set_point>>& set, const std::string& directory_name, int set_size, bool print = 0) {
 		if (print) {
 			std::cout << "[read_linear_set_set] Reading " << set_size << " sets" << std::endl;
@@ -295,7 +301,7 @@ namespace NNSpace {
 	// Input: NET topology.
 	// Output: Generates n * W networks of given topology & serializes them to given path.
 	// Activator function is undefined.
-	bool generate_random_weight_networks(const std::vector<int>& dimensions, const std::string& output_directory, ActivatorType activator = ActivatorType::LINEAR, bool enable_offsets = 0, bool print = 0) {
+	bool generate_random_weight_networks(const std::vector<int>& dimensions, const std::string& output_directory, ActivatorType activator = ActivatorType::LINEAR, double dispersion = 0, bool enable_offsets = 0, bool print = 0) {
 		
 		std::error_code ec;
 		if (!std::experimental::filesystem::create_directories(output_directory, ec) && ec)
@@ -317,7 +323,7 @@ namespace NNSpace {
 			network.setActivator(getActivatorByType(activator));
 			
 			// ...
-			network.initialize(0);
+			network.initialize(dispersion);
 			// ...
 			
 			std::string filename = output_directory + "/network_" + std::to_string(i) + ".neetwook";
@@ -339,7 +345,7 @@ namespace NNSpace {
 		return 1;
 	};
 	
-	void generate_random_weight_networks(std::vector<NNSpace::MLNetwork>& networks, const std::vector<int>& dimensions, ActivatorType activator = ActivatorType::LINEAR, bool enable_offsets = 0, bool print = 0) {
+	void generate_random_weight_networks(std::vector<NNSpace::MLNetwork>& networks, const std::vector<int>& dimensions, ActivatorType activator = ActivatorType::LINEAR, double dispersion = 0, bool enable_offsets = 0, bool print = 0) {
 		// Number of topos is A = n * W,
 		//                    n - count of input layers.
 		//                    W - count of weights.
@@ -357,7 +363,7 @@ namespace NNSpace {
 			networks[i].setActivator(getActivatorByType(activator));
 			
 			// ...
-			networks[i].initialize(0);
+			networks[i].initialize(dispersion);
 			// ...
 			
 			if (print)
@@ -374,7 +380,7 @@ namespace NNSpace {
 	};
 
 	// Train passed network on passed set.
-	void train_network_backpropagation(NNSpace::MLNetwork& network, std::vector<linear_set_point>& train_set, bool print = 0) {
+	void train_network_backpropagation(NNSpace::MLNetwork& network, std::vector<linear_set_point>& train_set, int id = 0, bool print = 0) {
 		if (train_set.size() == 0)
 			return;
 		
@@ -387,7 +393,10 @@ namespace NNSpace {
 			std::vector<double> output = network.run(input);
 			
 			double dv = output[0] - train_set[0].y;
-			rate = dv * dv;
+			if (id == 0)
+				rate = dv * dv;
+			else if (id == 1)
+				rate = std::fabs(dv);
 		}
 		
 		// Keep teaching
@@ -396,7 +405,7 @@ namespace NNSpace {
 				std::cout << "[train_network_backpropagation] Train " << i << " / " << train_set.size() << std::endl;
 			
 			// XXX: implement other training algorithm
-			rate = network.train_error(0, { train_set[i].x }, { train_set[i].y }, rate);
+			rate = network.train_error(id, { train_set[i].x }, { train_set[i].y }, rate);
 		}
 	};
 
@@ -421,7 +430,7 @@ namespace NNSpace {
 		return error / (double) set.size();
 	}
 	
-	// SUM [ e ] / amount
+	// SUM [ |e| ] / amount
 	long double calculate_linear_error(NNSpace::MLNetwork& network, std::vector<linear_set_point>& set, bool print = 0) {
 		if (print)
 			std::cout << "[calculate_linear_error] Calculating linear error value" << std::endl;
@@ -436,7 +445,7 @@ namespace NNSpace {
 			output = network.run(input);
 			
 			long double dv = set[i].y - output[0];
-			error += dv;
+			error += std::fabs(dv);
 		}
 		
 		return error / (double) set.size();

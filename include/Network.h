@@ -115,14 +115,16 @@ namespace NNSpace {
 		virtual void setActivator(NetworkFunction* function) {};
 		
 		// Randomize biases
-		virtual void initialize(int id) {};
+		virtual void initialize(double dispersion) {};
 		
 		// Teach on input data
-		virtual void train(int id, const std::vector<double>& input, const std::vector<double>& output_teach, double rate) {};
+		virtual void train(const std::vector<double>& input, const std::vector<double>& output_teach, double rate) {};
 		
 		// Teach on input data, returns average error value for output layer
-		virtual double train_error(int id, const std::vector<double>& input, const std::vector<double>& output_teach, double rate) { 
-			train(id, input, output_teach, rate); 
+		// error_calculate_id = 0 - average square error
+		// error_calculate_id = 1 - average abs error
+		virtual double train_error(int error_calculate_id, const std::vector<double>& input, const std::vector<double>& output_teach, double rate) { 
+			train(input, output_teach, rate); 
 			return 0.0;
 		};
 		

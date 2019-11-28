@@ -74,17 +74,18 @@ namespace NNSpace {
 			}
 		};
 		
-		void initialize(int id) {
-			double v1_MAX = 1.0 / RAND_MAX;
+		void initialize(double dispersion) {
+			double scale2 = dispersion * 0.5;
+			double v1_MAX = dispersion / RAND_MAX;
 			
 			for (int k = 0; k < dimensions.size() - 1; ++k)
 				for (int i = 0; i < dimensions[k]; ++i)
 					for (int j = 0; j < dimensions[k + 1]; ++j)
-						W[k][i][j] = rand() * v1_MAX - 0.5;		
+						W[k][i][j] = rand() * v1_MAX - scale2;		
 
 			for (int i = 0; i < dimensions.size() - 1; ++i)
 				for (int j = 0; j < dimensions[i + 1]; ++j)
-					offsets[i][j] = rand() * v1_MAX - 0.5;
+					offsets[i][j] = rand() * v1_MAX - scale2;
 		};
 		
 		inline void setEnableOffsets(bool e) {
@@ -93,7 +94,7 @@ namespace NNSpace {
 		
 		// Teach using backpropagation
 		// Assume input, output_teach size match input, output layer size
-		void train(int id, const std::vector<double>& input, const std::vector<double>& output_teach, double rate) {
+		void train(const std::vector<double>& input, const std::vector<double>& output_teach, double rate) {
 			std::vector<std::vector<double>> layers; // [0-N]
 			layers.resize(dimensions.size());
 			layers[0] = input;
@@ -176,7 +177,7 @@ namespace NNSpace {
 					offsets[k][i] += doffset[k][i];
 		};
 		
-		double train_error(int id, const std::vector<double>& input, const std::vector<double>& output_teach, double rate) {
+		double train_error(int error_calculate_id, const std::vector<double>& input, const std::vector<double>& output_teach, double rate) {
 			double out_error_value = 0.0;
 			std::vector<std::vector<double>> layers; // [0-N]
 			layers.resize(dimensions.size());
@@ -226,7 +227,11 @@ namespace NNSpace {
 			for (int i = 0; i < dimensions.back(); ++i) { // K-2, K-1
 				double dv = output_teach[i] - layers.back()[i];
 				sigma.back()[i] = dv * activators.back()->derivative(layers_raw.back()[i]);
-				out_error_value += dv * dv;
+				
+				if (error_calculate_id == 0)
+					out_error_value += dv * dv;
+				else if (error_calculate_id == 1)
+					out_error_value += std::fabs(dv);
 			}
 			
 			for (int k = (dimensions.size() - 1) - 2; k >= 0; --k) // K-3, K-2,, ..
@@ -235,8 +240,7 @@ namespace NNSpace {
 						sigma[k][i] += sigma[k + 1][j] * W[k + 1][i][j];
 					
 					sigma[k][i] *= activators[k + 0]->derivative(layers_raw[k + 1 - 1][i]); // layers_raw[k + 1]
-				} // checked?
-				// XXX: Debug with print sigmas step by step for same seed
+				} 
 			
 			// Calculate weights correction
 			for (int k = 0; k < dimensions.size() - 1; ++k)

@@ -2,7 +2,7 @@
 #include <string>
 #include <cstring>
 
-#include "MultistartCutoff.h"
+#include "NetworkTestingCommon.h"
 
 #ifdef ENABLE_PRINT
 	#define PRINT_BOOL 1
@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
 	//  > generate_networks
 	
 	NNSpace::remove_directory(output_dir, PRINT_BOOL);
-	if (!NNSpace::generate_random_weight_networks(dimensions, output_dir, activator, 0, PRINT_BOOL)) {
+	if (!NNSpace::generate_random_weight_networks(dimensions, output_dir, activator, 1, 0, PRINT_BOOL)) {
 		std::cout << "Failed creating networks" << std::endl;
 		return 0;
 	}

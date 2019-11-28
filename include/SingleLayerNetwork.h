@@ -80,22 +80,23 @@ namespace NNSpace {
 			output_act = function->clone();
 		};
 		
-		void initialize(int id) {
-			double v1_MAX = 1.0 / RAND_MAX;
+		void initialize(double dispersion) {
+			double scale2 = dispersion * 0.5;
+			double v1_MAX = dispersion / RAND_MAX;
 			
 			for (int i = 0; i < dimensions.input; ++i)
 				for (int j = 0; j < dimensions.middle; ++j)
-					W01[i][j] = rand() * v1_MAX - 0.5;
+					W01[i][j] = rand() * v1_MAX - scale2;
 
 			for (int i = 0; i < dimensions.middle; ++i)
 				for (int j = 0; j < dimensions.output; ++j)
-					W12[i][j] = rand() * v1_MAX - 0.5;		
+					W12[i][j] = rand() * v1_MAX - scale2;		
 
 			for (int i = 0; i < dimensions.middle; ++i)
-				middle_offset[i] = rand() * v1_MAX - 0.5;
+				middle_offset[i] = rand() * v1_MAX - scale2;
 			
 			for (int i = 0; i < dimensions.output; ++i)
-				output_offset[i] = rand() * v1_MAX - 0.5;
+				output_offset[i] = rand() * v1_MAX - scale2;
 		};
 		
 		inline void setEnableOffsets(bool e) {
@@ -104,7 +105,7 @@ namespace NNSpace {
 		
 		// Teach using backpropagation
 		// Assume input, output_teach size match input, output layer size
-		void train(int id, const std::vector<double>& input, const std::vector<double>& output_teach, double rate) {
+		void train(const std::vector<double>& input, const std::vector<double>& output_teach, double rate) {
 			std::vector<double> middle_raw(dimensions.middle);
 			std::vector<double> middle(dimensions.middle);
 			std::vector<double> output_raw(dimensions.output);
@@ -194,7 +195,7 @@ namespace NNSpace {
 				output_offset[i] += do_offset[i];
 		};
 		
-		double train_error(int id, const std::vector<double>& input, const std::vector<double>& output_teach, double rate) {
+		double train_error(int error_calculate_id, const std::vector<double>& input, const std::vector<double>& output_teach, double rate) {
 			std::vector<double> middle_raw(dimensions.middle);
 			std::vector<double> middle(dimensions.middle);
 			std::vector<double> output_raw(dimensions.output);
@@ -227,7 +228,12 @@ namespace NNSpace {
 			for (int i = 0; i < dimensions.output; ++i) {
 				double dv = output_teach[i] - output[i];
 				sigma_output[i] = dv * output_act->derivative(output_raw[i]);
-				out_error_value += dv * dv;
+				
+				// Calculate total error
+				if (error_calculate_id == 0)
+					out_error_value += dv * dv;
+				else if (error_calculate_id)
+					out_error_value += std::fabs(dv);
 			}
 			
 			// Calculate bias correction for middle-output

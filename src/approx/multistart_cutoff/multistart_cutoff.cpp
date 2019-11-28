@@ -3,8 +3,9 @@
 #include <limits>
 #include <cstring>
 #include <cmath>
+#include <chrono>
 
-#include "MultistartCutoff.h"
+#include "NetworkTestingCommon.h"
 
 #ifdef ENABLE_PRINT
 	#define PRINT_BOOL 1
@@ -18,9 +19,9 @@
 
 // ./bin/generate_set 0.0 1.0 100000 "sin(t * 2.0 * 3.14) * 0.5 + 0.5" input/train.nse
 // ./bin/generate_set 0.0 1.0 100 "sin(t * 2.0 * 3.14) * 0.5 + 0.5" input/test.nse
-// ./bin/multistart_cutoff 4 1 3 3 1 TanH input/teach.nse input/test.nse output/mc_network.neetwook
+// ./bin/multistart_cutoff 4 1 3 3 1 10.0 TanH input/teach.nse input/test.nse output/mc_network.neetwook
 
-// g++ -O3 src/approx/multistart_cutoff/multistart_cutoff.cpp -o bin/multistart_cutoff -Iinclude -lstdc++fs && ./bin/multistart_cutoff 4 1 3 3 1 TanH input/train.nse input/test.nse output/mc_network.neetwook
+// g++ -O3 src/approx/multistart_cutoff/multistart_cutoff.cpp -o bin/multistart_cutoff -Iinclude -lstdc++fs && ./bin/multistart_cutoff 4 1 3 3 1 10.0 TanH input/train.nse input/test.nse output/mc_network.neetwook
 
 int main(int argc, char** argv) {
 	
@@ -90,10 +91,11 @@ int main(int argc, char** argv) {
 	// Input:
 	// 1. layers count [L].
 	// 2+i. layer i size.
-	// 2+L. activator function (TanH, Sigmoid, Linear).
-	// 3+L. input train set.
-	// 4+L. input test set.
-	// 5+L. output file for network
+	// 2+L. weights dispersion.
+	// 3+L. activator function (TanH, Sigmoid, Linear).
+	// 4+L. input train set.
+	// 5+L. input test set.
+	// 6+L. output file for network
 	
 	// Output: error value for test set on produced network.
 	
@@ -106,7 +108,7 @@ int main(int argc, char** argv) {
 	
 	int L = std::stoi(argv[1]);
 	
-	if (argc < L + 5)  {
+	if (argc < L + 6)  {
 		std::cout << "Not enough arguments" << std::endl;
 		return 0;
 	}
@@ -116,21 +118,23 @@ int main(int argc, char** argv) {
 	for (int i = 0; i < dimensions.size(); ++i)
 		dimensions[i] = std::stoi(argv[i + 2]);
 	
+	double Wd = std::stod(argv[L + 2]);
+	
 	NNSpace::ActivatorType activator;
-	if (strcmp("TanH", argv[L + 2]) == 0)
+	if (strcmp("TanH", argv[L + 3]) == 0)
 		activator = NNSpace::ActivatorType::TANH;
-	else if (strcmp("Sigmoid", argv[L + 2]) == 0)
+	else if (strcmp("Sigmoid", argv[L + 3]) == 0)
 		activator = NNSpace::ActivatorType::SIGMOID;
-	else if (strcmp("Linear", argv[L + 2]) == 0)
+	else if (strcmp("Linear", argv[L + 3]) == 0)
 		activator = NNSpace::ActivatorType::LINEAR;
 	else {
 		std::cout << "Invalid activator type" << std::endl;
 		return 0;
 	}
 	
-	std::string train_set_file = argv[L + 3];
-	std::string test_set_file = argv[L + 4];
-	std::string output_filename = argv[L + 5];
+	std::string train_set_file = argv[L + 4];
+	std::string test_set_file = argv[L + 5];
+	std::string output_filename = argv[L + 6];
 	
 	
 	// 1. Read train & test set
@@ -146,6 +150,30 @@ int main(int argc, char** argv) {
 		return 0;
 	}
 	
+	/*
+	// Calculate network weight dispersion as (max_test_y - min_test_y) * (max_test_x - min_test_x) * 4
+	long double Wd = 0.0;
+	
+	{
+		long double minx = std::numeric_limits<long double>::max();
+		long double maxx = 0.0;
+		long double miny = std::numeric_limits<long double>::max();
+		long double maxy = 0.0;
+		
+		for (int i = 0; i < train_set.size(); ++i) {
+			if (train_set[i].x > maxx)
+				maxx = train_set[i].x;
+			if (train_set[i].x < minx)
+				minx = train_set[i].x;
+			if (train_set[i].y > maxy)
+				maxy = train_set[i].y;
+			if (train_set[i].y < miny)
+				miny = train_set[i].y;
+		}
+		
+		Wd = (maxy - miny + maxx - minx) * 10.0;
+	}
+	*/
 	
 	// 2. Generate train subsets
 	int A = 0;
@@ -156,10 +184,12 @@ int main(int argc, char** argv) {
 	NNSpace::split_linear_set_base_2(train_set_set, train_set, A, 0, PRINT_BOOL);
 	
 	// -- Time record start here --
+	auto timestamp_1 = std::chrono::high_resolution_clock::now();
+	unsigned long learn_iterations_count = 0;
 	
 	// 3. Generate Networks
 	std::vector<NNSpace::MLNetwork> networks;
-	generate_random_weight_networks(networks, dimensions, activator, 0, PRINT_BOOL);
+	generate_random_weight_networks(networks, dimensions, activator, Wd, 0, PRINT_BOOL);
 	
 	std::vector<int> index_array;
 	std::vector<int> half_index_array;
@@ -185,18 +215,20 @@ int main(int argc, char** argv) {
 		
 		E_min = std::numeric_limits<long double>::max();
 		V_max = 0.0;
-		
-			std::cout << "Train size = " << train_set_set[step].size() << std::endl;
 			
+		// Collect statistics
+		learn_iterations_count += networks.size() * train_set_set[step].size();
+		
 		for (int i = 0; i < networks.size(); ++i) {
 			// 5. Calculate error value for each network now (V<b>)
-			V[i] = NNSpace::calculate_square_error(networks[i], test_set, PRINT_BOOL);
+			
+			V[i] = NNSpace::calculate_linear_error(networks[i], test_set, PRINT_BOOL);
 			
 			// 6. Perform teaching of all networks
-			NNSpace::train_network_backpropagation(networks[i], train_set_set[step], PRINT_BOOL);
+			NNSpace::train_network_backpropagation(networks[i], train_set_set[step], 1, PRINT_BOOL);
 			
 			// 8. Calculate Average error value now (E)
-			E[i] = NNSpace::calculate_square_error(networks[i], test_set, PRINT_BOOL);
+			E[i] = NNSpace::calculate_linear_error(networks[i], test_set, PRINT_BOOL);
 			if (E[i] < E_min)
 				E_min = E[i];
 			
@@ -254,15 +286,16 @@ int main(int argc, char** argv) {
 			networks.erase(networks.begin() + half_index_array[i]);
 		
 		++step;
-		//std::cout << "Step, N: " << step << " " << N << ", networks count: " << networks.size() << std::endl;
-	
 	}
 	
 	// -- Time record stop here --
+	auto timestamp_2 = std::chrono::high_resolution_clock::now();
 
 	// 10. Calculate resulting network error value & print
-	long double error_value_result = NNSpace::calculate_square_error(networks[0], test_set, PRINT_BOOL);
+	long double error_value_result = NNSpace::calculate_linear_error(networks[0], test_set, PRINT_BOOL);
 	std::cout << "Result error value: " << error_value_result << std::endl;
+	std::cout << "Result learning time: " << std::chrono::duration_cast<std::chrono::milliseconds>(timestamp_2 - timestamp_1).count() << "ms" << std::endl;
+	std::cout << "Result train iterations: " << learn_iterations_count << std::endl;
 	std::cout << "Serializing into: " << output_filename << std::endl;
 	NNSpace::store_network(networks[0], output_filename, PRINT_BOOL);
 	
