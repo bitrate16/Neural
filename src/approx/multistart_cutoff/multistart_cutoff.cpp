@@ -1,6 +1,8 @@
 #include <iostream>
 #include <string>
+#include <limits>
 #include <cstring>
+#include <cmath>
 
 #include "MultistartCutoff.h"
 
@@ -10,11 +12,15 @@
 	#define PRINT_BOOL 0
 #endif
 
+// #define DEBUG_CUT_SET
+
 // g++ -O3 src/approx/multistart_cutoff/multistart_cutoff.cpp -o bin/multistart_cutoff -Iinclude -lstdc++fs && ./bin/multistart_cutoff
 
-// ./bin/generate_set 0.0 1.0 10000 "sin(t * 2.0 * 3.14) * 0.5 + 0.5" input/train.nse
+// ./bin/generate_set 0.0 1.0 100000 "sin(t * 2.0 * 3.14) * 0.5 + 0.5" input/train.nse
 // ./bin/generate_set 0.0 1.0 100 "sin(t * 2.0 * 3.14) * 0.5 + 0.5" input/test.nse
-// ./bin/multistart_cutoff 4 1 3 3 1 TanH input/teach.nse input/test.nse
+// ./bin/multistart_cutoff 4 1 3 3 1 TanH input/teach.nse input/test.nse output/mc_network.neetwook
+
+// g++ -O3 src/approx/multistart_cutoff/multistart_cutoff.cpp -o bin/multistart_cutoff -Iinclude -lstdc++fs && ./bin/multistart_cutoff 4 1 3 3 1 TanH input/train.nse input/test.nse output/mc_network.neetwook
 
 int main(int argc, char** argv) {
 	
@@ -59,9 +65,9 @@ int main(int argc, char** argv) {
 	// 4. For all networks calculate gradient of error value V, average error value on set E.
 	// > V is being calculated as average square error value difference of 
 	// >  error values before teach and after teach.
-	// >  V<b>i = SUM [ output<b> - test ]i ^ 2 / SET_SIZE
-	// >  V<a>i = SUM [ output<a> - test ]i ^ 2 / SET_SIZE
-	// >  V = V<b> - V<a>
+	// >  V<b>i = SUM [ output<b> - test ]i ^ 2 / OUT_SIZE
+	// >  V<a>i = SUM [ output<a> - test ]i ^ 2 / OUT_SIZE
+	// >  V = (V<b> - V<a>) / SET_SIZE
 	// > E is calculated as average linear error value during test
 	// 
 	// 5. Sort all networks ascending by V.
@@ -87,6 +93,7 @@ int main(int argc, char** argv) {
 	// 2+L. activator function (TanH, Sigmoid, Linear).
 	// 3+L. input train set.
 	// 4+L. input test set.
+	// 5+L. output file for network
 	
 	// Output: error value for test set on produced network.
 	
@@ -121,8 +128,9 @@ int main(int argc, char** argv) {
 		return 0;
 	}
 	
-	std::string teach_set_file = argv[L + 3];
-	std::string train_set_file = argv[L + 4];
+	std::string train_set_file = argv[L + 3];
+	std::string test_set_file = argv[L + 4];
+	std::string output_filename = argv[L + 5];
 	
 	
 	// 1. Read train & test set
@@ -133,10 +141,11 @@ int main(int argc, char** argv) {
 	}
 	
 	std::vector<NNSpace::linear_set_point> test_set;
-	if (!NNSpace::read_linear_set(test_set, train_set_file, 0, PRINT_BOOL)) {
+	if (!NNSpace::read_linear_set(test_set, test_set_file, 0, PRINT_BOOL)) {
 		std::cout << "Failed reading test set" << std::endl;
 		return 0;
 	}
+	
 	
 	// 2. Generate train subsets
 	int A = 0;
@@ -152,29 +161,110 @@ int main(int argc, char** argv) {
 	std::vector<NNSpace::MLNetwork> networks;
 	generate_random_weight_networks(networks, dimensions, activator, 0, PRINT_BOOL);
 	
+	std::vector<int> index_array;
+	std::vector<int> half_index_array;
+	
+	std::vector<long double> V;
+	std::vector<long double> E;
+	
+	long double E_min, V_max;
+		
 	// 4. Loop
 	int step = 0;
-	int N = NNSpace::log2(a);
+	int N = NNSpace::log2(A);
+	
 	while (step < N) {
-		// 5. Calculate error value for each network now (V<b>)
 		
-		// 6. Perform teaching of all networks
+		index_array.resize(networks.size());
+		half_index_array.resize(networks.size() / 2);
+		for (int i = 0; i < index_array.size(); ++i)
+			index_array[i] = i;
 		
-		// 7. Calculate error value for each network now (V<a>)
+		V.resize(networks.size());
+		E.resize(networks.size());
 		
-		// 8. Calculate Average error value now (E)
+		E_min = std::numeric_limits<long double>::max();
+		V_max = 0.0;
 		
-		// 8. Order networks by error gradient (descending)
+			std::cout << "Train size = " << train_set_set[step].size() << std::endl;
+			
+		for (int i = 0; i < networks.size(); ++i) {
+			// 5. Calculate error value for each network now (V<b>)
+			V[i] = NNSpace::calculate_square_error(networks[i], test_set, PRINT_BOOL);
+			
+			// 6. Perform teaching of all networks
+			NNSpace::train_network_backpropagation(networks[i], train_set_set[step], PRINT_BOOL);
+			
+			// 8. Calculate Average error value now (E)
+			E[i] = NNSpace::calculate_square_error(networks[i], test_set, PRINT_BOOL);
+			if (E[i] < E_min)
+				E_min = E[i];
+			
+			// 7. Calculate error value for each network now (V<a>)
+			V[i] = E[i] - V[i];
+			
+			// Calculate V
+			V[i] /= (long double) test_set.size();
+			if (V[i] > V_max)
+				V_max = V[i];
+		}
 		
-		// 9. Order networks by average error value (ascending)
+#ifdef DEBUG_CUT_SET
+		std::cout << std::endl;
+		std::cout << "Indexes ordered by distance before sort (id, distance): " << std::endl;
+		for (int i = 0; i < index_array.size(); ++i)
+			std::cout << '(' << index_array[i] << ", " << (V_max - V[index_array[i]] + E[index_array[i]] - E_min) << ") " << std::endl;
+		std::cout << std::endl;
+#endif
 		
-		// 10. Select Ai networks and remove
+		// 8. Order network indexes
+		std::sort(index_array.begin(), index_array.end(), [&V, &E, &V_max, &E_min](const int& a, const int& b) {
+			return 	(V_max - V[a] + E[a] - E_min)  // Distance from A to error values
+					>
+					(V_max - V[b] + E[b] - E_min); // Distance from B to error values
+		});
 		
+#ifdef DEBUG_CUT_SET
+		std::cout << "Indexes ordered by distance after sort (id, distance): " << std::endl;
+		for (int i = 0; i < index_array.size(); ++i)
+			std::cout << '(' << index_array[i] << ", " << (V_max - V[index_array[i]] + E[index_array[i]] - E_min) << ") " << std::endl;
+		std::cout << std::endl;
+#endif
+		
+		// 9. Select Ai networks and remove
+		half_index_array.assign(index_array.begin(), index_array.begin() + index_array.size() / 2 + index_array.size() % 2);
+		
+#ifdef DEBUG_CUT_SET
+		std::cout << "Indexes ordered by distance half before sort (id, distance): " << std::endl;
+		for (int i = 0; i < half_index_array.size(); ++i)
+			std::cout << '(' << half_index_array[i] << ", " << (V_max - V[half_index_array[i]] + E[half_index_array[i]] - E_min) << ") " << std::endl;
+		std::cout << std::endl;
+#endif
+		
+		std::sort(half_index_array.begin(), half_index_array.end(), [](const int& a, const int& b) { return a > b; });
+		
+#ifdef DEBUG_CUT_SET
+		std::cout << "Indexes ordered by distance half (id, distance): " << std::endl;
+		for (int i = 0; i < half_index_array.size(); ++i)
+			std::cout << '(' << half_index_array[i] << ", " << (V_max - V[half_index_array[i]] + E[half_index_array[i]] - E_min) << ") " << std::endl;
+		std::cout << std::endl;
+#endif
+		
+		for (int i = 0; i < half_index_array.size(); ++i)
+			networks.erase(networks.begin() + half_index_array[i]);
+		
+		++step;
+		//std::cout << "Step, N: " << step << " " << N << ", networks count: " << networks.size() << std::endl;
+	
 	}
 	
-	// 11. Calculate resulting network error value & print
-	
 	// -- Time record stop here --
+
+	// 10. Calculate resulting network error value & print
+	long double error_value_result = NNSpace::calculate_square_error(networks[0], test_set, PRINT_BOOL);
+	std::cout << "Result error value: " << error_value_result << std::endl;
+	std::cout << "Serializing into: " << output_filename << std::endl;
+	NNSpace::store_network(networks[0], output_filename, PRINT_BOOL);
 	
 	return 0;
 };

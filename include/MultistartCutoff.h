@@ -375,6 +375,9 @@ namespace NNSpace {
 
 	// Train passed network on passed set.
 	void train_network_backpropagation(NNSpace::MLNetwork& network, std::vector<linear_set_point>& train_set, bool print = 0) {
+		if (train_set.size() == 0)
+			return;
+		
 		// Start training from calculating error value on the first test like it was continuous train loop.
 		int rate = 0.0;
 		
@@ -400,9 +403,9 @@ namespace NNSpace {
 	// SUM [ e^2 ] / amount
 	long double calculate_square_error(NNSpace::MLNetwork& network, std::vector<linear_set_point>& set, bool print = 0) {
 		if (print)
-			std::cout << "[calculate_square_error] Calculating square error value";
+			std::cout << "[calculate_square_error] Calculating square error value" << std::endl;
 		
-		std::vector<double> input;
+		std::vector<double> input(1);
 		std::vector<double> output;
 		
 		long double error = 0;
@@ -421,9 +424,9 @@ namespace NNSpace {
 	// SUM [ e ] / amount
 	long double calculate_linear_error(NNSpace::MLNetwork& network, std::vector<linear_set_point>& set, bool print = 0) {
 		if (print)
-			std::cout << "[calculate_linear_error] Calculating linear error value";
+			std::cout << "[calculate_linear_error] Calculating linear error value" << std::endl;
 		
-		std::vector<double> input;
+		std::vector<double> input(1);
 		std::vector<double> output;
 		
 		long double error = 0;
