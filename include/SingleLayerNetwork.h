@@ -342,7 +342,10 @@ namespace NNSpace {
 			std::cout << std::endl;\
 			*/
 			
-			return out_error_value / (double) dimensions.output;
+			if (error_calculate_id == 1)
+				return std::sqrt(out_error_value / (double) dimensions.output);
+			else if (error_calculate_id == 0)
+				return out_error_value / (double) dimensions.output;
 		};
 		
 		// Assume input size match input layer size

@@ -415,7 +415,7 @@ namespace NNSpace {
 			
 			double dv = output[0] - train_set[0].y;
 			if (id == 0)
-				rate = dv * dv;
+				rate = std::fabs(dv);
 			else if (id == 1)
 				rate = std::fabs(dv);
 		}
@@ -482,7 +482,7 @@ namespace NNSpace {
 			error += dv * dv;
 		}
 		
-		return error / (double) set.size();
+		return std::sqrt(error / (double) set.size());
 	}
 	
 	// SUM [ |e| ] / amount
@@ -530,7 +530,7 @@ namespace NNSpace {
 			error += dv * dv;
 		}
 		
-		return error / (double) set.size();
+		return std::sqrt(error / (double) set.size());
 	}
 	
 	// SUM [ SUM [ | output[i] - test[i] | ] ] / amount
@@ -647,7 +647,7 @@ namespace NNSpace {
 			test[dataset.test_labels[i]] = 0.0;
 		}
 		
-		return error / (double) test_size;
+		return std::sqrt(error / (double) test_size);
 	};
 	
 	// SUM [ SUM [ | output[i] - test[i] | ] ] / amount
@@ -728,6 +728,9 @@ namespace NNSpace {
 			}
 			
 			rate /= (double) test.size();
+			
+			if (error_calc_id == 1)
+				rate = std::sqrt(rate);
 		}
 		
 		// Keep teaching
