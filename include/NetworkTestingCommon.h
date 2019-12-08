@@ -41,6 +41,8 @@ namespace NNSpace {
 		return t;
 	}
 	
+	// G E N E R A T E _ S E T
+	
 	// Generates set normally distributed (if set randomize = 1).
 	// Generating linear set on funciton Y = F(X).
 	// start <= X <= end,
@@ -94,6 +96,8 @@ namespace NNSpace {
 		return 1;
 	};
 	
+	// S T O R E _ N E T W O R K
+	
 	// Store single network to directory
 	bool store_network(NNSpace::MLNetwork& network, const std::string& filename, bool print = 0) {
 		if (print)
@@ -146,6 +150,8 @@ namespace NNSpace {
 		}
 	};
 	
+	// S E T  _  R E A D 
+	
 	// Reads linear test set from file.
 	// Y = F(X).
 	// if randomize = 1, does reflushing of the set.
@@ -184,6 +190,39 @@ namespace NNSpace {
 		is.close();
 		return 1;
 	}
+	
+	// used to read set of sets into vector
+	bool read_linear_set_set(std::vector<std::vector<linear_set_point>>& set, const std::string& directory_name, int set_size, bool print = 0) {
+		if (print) {
+			std::cout << "[read_linear_set_set] Reading " << set_size << " sets" << std::endl;
+			std::cout << "[read_linear_set_set] Reading from " << directory_name << std::endl;
+		}
+		
+		set.resize(set_size);
+		for (int i = 0; i < set_size; ++i) {
+			std::ifstream is;
+			std::string input_name = directory_name + "/set_" + std::to_string(i) + ".nse";
+			
+			is.open(input_name);
+			if (is.fail()) {
+				std::cout << "[read_linear_set_set] File " << input_name << " open failed" << std::endl;
+				return 0;
+			}
+			
+			int amount = 0;
+			is >> amount;
+			
+			set.resize(amount);
+			for (int j = 0; j < amount; ++j)
+				is >> set[i][j].x >> set[i][j].y;
+			
+			is.close();
+		}
+		
+		return 1;
+	}
+	
+	// S E T  _ S P L I T
 	
 	// Reads input set, randomizes and splits it into N pieces, writes each part into passed directory
 	bool split_linear_set(const std::string& input_name, const std::string& output_directory, int split_amount = 1, bool randomize_before_split = 1, bool print = 0) {
@@ -274,36 +313,35 @@ namespace NNSpace {
 		}
 	};
 	
-	// used to read set of sets into vector
-	bool read_linear_set_set(std::vector<std::vector<linear_set_point>>& set, const std::string& directory_name, int set_size, bool print = 0) {
-		if (print) {
-			std::cout << "[read_linear_set_set] Reading " << set_size << " sets" << std::endl;
-			std::cout << "[read_linear_set_set] Reading from " << directory_name << std::endl;
-		}
+	// Split existing MNIST dataset into subsets
+	void split_compose_set_base_2(std::vector<std::vector<compose_pair>>& set_set, std::vector<compose_pair>& set, int A, bool randomize_before_split = 1, bool print = 0) {
 		
-		set.resize(set_size);
-		for (int i = 0; i < set_size; ++i) {
-			std::ifstream is;
-			std::string input_name = directory_name + "/set_" + std::to_string(i) + ".nse";
-			
-			is.open(input_name);
-			if (is.fail()) {
-				std::cout << "[read_linear_set_set] File " << input_name << " open failed" << std::endl;
-				return 0;
-			}
-			
-			int amount = 0;
-			is >> amount;
-			
-			set.resize(amount);
-			for (int j = 0; j < amount; ++j)
-				is >> set[i][j].x >> set[i][j].y;
-			
-			is.close();
-		}
+		// Ci = C1 * 2 ^ (i-1)
+		// C1 = C / (2 ^ [log2(A)] - 1)
 		
-		return 1;
-	}
+		int C1 = set.size() / ((1 << log2(A)) - 1);
+		int Ci = C1;
+		int N = log2(A);
+		int current = 0;
+		int current_size = C1;
+		
+		if (print) 
+			std::cout << "[split_linear_set_base_2] Splitting set, C = " << set.size() << ", C1 = " << C1 << ", N = " << N << ", Cn = " << (Ci << (N - 1)) << std::endl;
+		
+		// Generate splits
+		set_set.resize(N);
+		for (int i = 0; i < N; ++i) {
+			// std::cout << "Ci = " << Ci << ", current = " << current << ", current_size = " << current_size << std::endl;
+			set_set[i].resize(current_size);
+			set_set[i].assign(&set[current], &set[current + current_size]);
+			int Cj       = C1 << i + 1;
+			current     += current_size;
+			current_size = Cj;
+			Ci           = Cj;
+		}
+	};
+	
+	// R A N D O M _ N E T W O R K S
 	
 	// Input: NET topology.
 	// Output: Generates n * W networks of given topology & serializes them to given path.
@@ -378,6 +416,61 @@ namespace NNSpace {
 		}
 	};
 	
+	bool generate_random_weight_networks_count(const std::vector<int>& dimensions, const std::string& output_directory, ActivatorType activator = ActivatorType::LINEAR, double dispersion = 0, int net_cnt = 1, bool enable_offsets = 0, bool print = 0) {
+		
+		std::error_code ec;
+		if (!std::experimental::filesystem::create_directories(output_directory, ec) && ec)
+			return 0;
+		
+		// XXX: Organize algorithm to generate A subsets of weight local points to cover entire topology.
+		
+		for (int i = 0; i < net_cnt; ++i) {
+			NNSpace::MLNetwork network(dimensions);
+			network.setEnableOffsets(enable_offsets);
+			network.setActivator(getActivatorByType(activator));
+			
+			// ...
+			network.initialize(dispersion);
+			// ...
+			
+			std::string filename = output_directory + "/network_" + std::to_string(i) + ".neetwook";
+			
+			if (print)
+				std::cout << "[generate_random_weight_networks] Generating " << filename << std::endl;
+			
+			std::ofstream of;
+			of.open(filename);
+			if (of.fail()) {
+				std::cout << "[generate_random_weight_networks] File " << filename << " open failed" << std::endl;
+				return 0;
+			}
+			network.serialize(of);
+			of.flush();
+			of.close();
+		}
+		
+		return 1;
+	};
+	
+	void generate_random_weight_networks_count(std::vector<NNSpace::MLNetwork>& networks, const std::vector<int>& dimensions, ActivatorType activator = ActivatorType::LINEAR, double dispersion = 0, int net_cnt = 1, bool enable_offsets = 0, bool print = 0) {
+		
+		// XXX: Organize algorithm to generate A subsets of weight local points to cover entire topology.
+		
+		networks.resize(net_cnt);
+		for (int i = 0; i < net_cnt; ++i) {
+			networks[i] = NNSpace::MLNetwork(dimensions);
+			networks[i].setEnableOffsets(enable_offsets);
+			networks[i].setActivator(getActivatorByType(activator));
+			
+			// ...
+			networks[i].initialize(dispersion);
+			// ...
+			
+			if (print)
+				std::cout << "[generate_random_weight_networks] Generating # " << i << std::endl;
+		}
+	};
+	
 	// Generates single nework, initialize it with passed dispersion value
 	void generate_random_weight_network(NNSpace::MLNetwork& network, const std::vector<int>& dimensions, ActivatorType activator = ActivatorType::LINEAR, double dispersion = 0, bool enable_offsets = 0, bool print = 0) {
 		network = NNSpace::MLNetwork(dimensions);
@@ -392,6 +485,8 @@ namespace NNSpace {
 			std::cout << "[generate_random_weight_network] Generating single network" << std::endl;
 	};
 	
+	// R E M O V E 
+	
 	// Removes all networks in the specified directory
 	int remove_directory(const std::string& directory, bool print = 0) {
 		if (print)
@@ -399,6 +494,8 @@ namespace NNSpace {
 		
 		return std::experimental::filesystem::remove_all(directory);
 	};
+
+	// T R A I N I N G
 
 	// Train passed network on passed set.
 	void train_network_backpropagation(NNSpace::MLNetwork& network, std::vector<linear_set_point>& train_set, int id = 0, bool print = 0) {
@@ -463,6 +560,8 @@ namespace NNSpace {
 			rate = network.train_error(id, train_set[i].x, train_set[i].y, rate);
 		}
 	};
+
+	// E R R O R _ C A L C U L A T I O N
 
 	// SUM [ e^2 ] / amount
 	long double calculate_square_error(NNSpace::MLNetwork& network, std::vector<linear_set_point>& set, bool print = 0) {
@@ -557,36 +656,6 @@ namespace NNSpace {
 		return error / (double) set.size();
 	}
 
-	// - - - - M U L T I D I M E N S I O N A L - - - -
-
-	// Split existing MNIST dataset into subsets
-	void split_compose_set_base_2(std::vector<std::vector<compose_pair>>& set_set, std::vector<compose_pair>& set, int A, bool randomize_before_split = 1, bool print = 0) {
-		
-		// Ci = C1 * 2 ^ (i-1)
-		// C1 = C / (2 ^ [log2(A)] - 1)
-		
-		int C1 = set.size() / ((1 << log2(A)) - 1);
-		int Ci = C1;
-		int N = log2(A);
-		int current = 0;
-		int current_size = C1;
-		
-		if (print) 
-			std::cout << "[split_linear_set_base_2] Splitting set, C = " << set.size() << ", C1 = " << C1 << ", N = " << N << ", Cn = " << (Ci << (N - 1)) << std::endl;
-		
-		// Generate splits
-		set_set.resize(N);
-		for (int i = 0; i < N; ++i) {
-			// std::cout << "Ci = " << Ci << ", current = " << current << ", current_size = " << current_size << std::endl;
-			set_set[i].resize(current_size);
-			set_set[i].assign(&set[current], &set[current + current_size]);
-			int Cj       = C1 << i + 1;
-			current     += current_size;
-			current_size = Cj;
-			Ci           = Cj;
-		}
-	};
-	
 	// - - - - M N I S T - - - -
 	
 	// Convert MNIST learning dataset to network-acceptable vector of doubles
