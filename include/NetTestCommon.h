@@ -8,6 +8,8 @@
 #include <random>
 #include <vector>
 
+#include "mnist/mnist_reader.hpp"
+
 // > Appriximation testing
 // 1. Generate test for function
 // 2. Generate teach for function
@@ -113,12 +115,7 @@ namespace NNSpace {
 		// Write given set to the file
 		// set  - input set
 		// name - output file name
-		bool write_approx_set(std::vector<std::pair<double, double>>& set, const std::string& filename) {
-			// Create file
-			std::error_code ec;
-			if (!std::experimental::filesystem::create_directories(output_directory, ec) && ec)
-				return 0;
-
+		bool write_approx_set(std::vector<std::pair<std::vector<double>, double>>& set, const std::string& filename) {
 			std::ofstream of;
 			of.open(filename);
 			if (of.fail()) 
@@ -132,15 +129,297 @@ namespace NNSpace {
 				of << "0 0";
 			else {
 				of << set.size() << ' ' << set[0].first.size() << std::endl;
+				
 				for (int i = 0; i < set.size(); ++i) {
 					for (int k = 0; k < set[i].first.size(); ++k)
 						of << set[i].first[k] << ' ';
 					
-					of << std::endl << set[i].first[k] << std::endl;
+					of << set[i].second << std::endl;
 				}
 			}
 			of.flush();
 			of.close();
+			
+			return 1;
+		};
+		
+		// Read given set from file
+		// set  - output set
+		// name - input file
+		bool read_approx_set(std::vector<std::pair<std::vector<double>, double>>& set, const std::string& filename) {
+			std::ifstream is;
+			is.open(filename);
+			if (is.fail()) 
+				return 0;
+			
+			// File structure:
+			// Count X_size 
+			// Data:{X, Y}
+			
+			int count  = 0;
+			int x_size = 0;
+			
+			is >> count >> x_size;
+			if (is.fail()) {
+				os.close();
+				return 0;
+			}
+			
+			set.resize(count);
+			for (int i = 0; i < amount; ++i) {
+				set[i].first.resize(x_size);
+				
+				for (int k = 0; k < x_size; ++k)
+					is >> set[i].first[k];
+				
+				is >> set[i].second;
+			}
+			
+			return 1;
+		};
+		
+		// Write given set to the file
+		// set  - input set
+		// name - output file name
+		bool write_approx_set(std::vector<std::pair<double, double>>& set, const std::string& filename) {
+			std::ofstream of;
+			of.open(filename);
+			if (of.fail()) 
+				return 0;
+			
+			// File structure:
+			// Count X_size 
+			// Data:{X, Y}
+			
+			if (set.size() == 0)
+				of << "0 0";
+			else {
+				of << set.size()   << ' ' << 2             << std::endl;
+				
+				for (int i = 0; i < set.size(); ++i)
+					of << set[i].first << ' ' << set[i].second << std::endl;
+			}
+			of.flush();
+			of.close();
+			
+			return 1;
+		};
+		
+		// Read given set from file
+		// set  - output set
+		// name - input file
+		bool read_approx_set(std::vector<std::pair<double, double>>& set, const std::string& filename) {
+			std::ifstream is;
+			is.open(filename);
+			if (is.fail()) 
+				return 0;
+			
+			// File structure:
+			// Count X_size 
+			// Data:{X, Y}
+			
+			int count  = 0;
+			int x_size = 0;
+			
+			is >> count >> x_size;
+			if (is.fail()) {
+				os.close();
+				return 0;
+			}
+			
+			set.resize(count);
+			for (int i = 0; i < amount; ++i) 
+				is >> set[i].first >> set[i].second;
+			
+			return 1;
+		};
+	
+		// Randomly shuffle testing set
+		void shuffle_approx_set(std::vector<std::pair<double, double>>& set) {
+			std::random_device rd;
+			std::mt19937 g(rd());
+			std::shuffle(set.begin(), set.end(), g);
+		}
+		
+		// Randomly shuffle testing set
+		void shuffle_approx_set(std::vector<std::pair<std::vector<double>, double>>& set) {
+			std::random_device rd;
+			std::mt19937 g(rd());
+			std::shuffle(set.begin(), set.end(), g);
+		}
+	
+		// Split Approx set
+		std::vector<std::vector<std::pair<double, double>>> split_approx_set(std::vector<std::pair<double, double>>& set, int subset_size) {
+			int set_count = set.size() / subset_size;
+			std::vector<std::vector<std::pair<double, double>>> sets(set_count);
+			
+			int set_ind = 0;
+			for (int i = 0; i < set_count; ++i) {
+				sets[i] = std::vector<std::pair<double, double>>(set.begin() + set_ind, set_begin() + set_ind + subset_size);
+				set_ind += subset_size;
+			}
+			
+			return sets;
+		};
+	
+		// Split Approx set
+		std::vector<std::vector<std::pair<std::vector<double>, double>>> split_approx_set(std::vector<std::pair<std::vector<double>, double>>& set, int subset_size) {
+			int set_count = set.size() / subset_size;
+			std::vector<std::vector<std::pair<std::vector<double>, double>>> sets(set_count);
+			
+			int set_ind = 0;
+			for (int i = 0; i < set_count; ++i) {
+				sets[i] = std::vector<std::pair<std::vector<double>, double>>(set.begin() + set_ind, set_begin() + set_ind + subset_size);
+				set_ind += subset_size;
+			}
+			
+			return sets;
+		};
+		
+		// Split Approx set 2^i
+		std::vector<std::vector<std::pair<double, double>>> split_approx_set_2i(std::vector<std::pair<double, double>>& set, int subset_size) {
+			int count = 0;
+			unsigned int size = set.size();
+			while (size) {
+				++count;
+				size >>= 1;
+			}
+			
+			std::vector<std::vector<std::pair<double, double>>> sets(set_count);
+			
+			int a = 0;
+			int b = 1;
+			for (int i = 0; i < count; ++i) {
+				sets[i] = std::vector<std::pair<double, double>>(set.begin() + a, set_begin() + b);
+				a = b;
+				b <<= 1;
+			}
+			
+			return sets;
+		};
+	
+		// Split Approx set 2^i
+		std::vector<std::vector<std::pair<std::vector<double>, double>>> split_approx_set_2i(std::vector<std::pair<std::vector<double>, double>>& set, int subset_size) {
+			int count = 0;
+			unsigned int size = set.size();
+			while (size) {
+				++count;
+				size >>= 1;
+			}
+			
+			std::vector<std::vector<std::pair<double, double>>> sets(set_count);
+			
+			int a = 0;
+			int b = 1;
+			for (int i = 0; i < count; ++i) {
+				sets[i] = std::vector<std::pair<std::vector<double>, double>>(set.begin() + a, set_begin() + b);
+				a = b;
+				b <<= 1;
+			}
+			
+			return sets;
+		};
+				
+		
+		// N E T W O R K S
+		
+		
+		// Generate N random networks
+		std::vector<NNSpace::MultiLayerNetwork> generate_random_networks(std::vector<int>& dimenstions, double dispersion, bool enable_offsets, int count) {
+			std::vector<NNSpace::MultiLayerNetwork> net(count);
+			
+			for (int i = 0; i < count; ++i) {
+				net[i].set(dimensions);
+				net[i].randomize(dispersion);
+				net[i].setEnableOffsets(enable_offsets);
+			}
+				
+			return net;
+		};
+		
+		// Removes all networks in the specified directory
+		int remove_directory(const std::string& directory) {
+			return std::experimental::filesystem::remove_all(directory);
+		};
+
+		// Write networks
+		bool write_networks(std::vector<NNSpace::MultiLayerNetwork>& net, std::string& out_dir) {
+			std::error_code ec;
+			if (!std::experimental::filesystem::create_directories(out_dir, ec) && ec)
+				return 0;
+			
+			for (int i = 0; i < net.size(); ++i) {
+				std::string filename = out_dir + "/network_" + std::to_string(i) + ".neetwook";
+			
+				std::ofstream of;
+				of.open(filename);
+				if (of.fail()) 
+					return 0;
+				
+				net[i].serialize(of);
+				
+				of.flush();
+				of.close();
+			}
+			
+			return 1;
+		};
+		
+		// Read networks
+		bool read_networks(std::vector<NNSpace::MultiLayerNetwork>& net, std::string& in_dir, int count) {
+			net.resize(count);
+			
+			for (int i = 0; i < count; ++i) {
+				std::ifstream is;
+				std::string filename = in_dir + "/network_" + std::to_string(i) + ".neetwook";
+				
+				is.open(filename);
+				if (is.fail()) 
+					return 0;
+				
+				net[i].deserialize(is);
+				
+				is.close();
+			}
+			
+			return 1;
+		};
+		
+		// Write single ordered network
+		bool write_network(NNSpace::MultiLayerNetwork& net, std::string& out_dir, int i) {
+			std::error_code ec;
+			if (!std::experimental::filesystem::create_directories(out_dir, ec) && ec)
+				return 0;
+			
+			std::string filename = out_dir + "/network_" + std::to_string(i) + ".neetwook";
+		
+			std::ofstream of;
+			of.open(filename);
+			if (of.fail()) 
+				return 0;
+			
+			net.serialize(of);
+			
+			of.flush();
+			of.close();
+			
+			return 1;
+		};
+		
+		// Read single ordered network
+		bool write_network(NNSpace::MultiLayerNetwork& net, std::string& in_dir, int i) {
+			std::ifstream is;
+			std::string filename = in_dir + "/network_" + std::to_string(i) + ".neetwook";
+			
+			is.open(filename);
+			if (is.fail()) 
+				return 0;
+			
+			net.deserialize(is);
+			
+			is.close();
+			
+			return 1;
 		};
 	};
 };
