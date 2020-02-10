@@ -337,6 +337,17 @@ namespace NNSpace {
 			return net;
 		};
 		
+		// Generate random network
+		NNSpace::MultiLayerNetwork generate_random_networks(std::vector<int>& dimenstions, double dispersion, bool enable_offsets, int count) {
+			NNSpace::MultiLayerNetwork net(dimensions);
+			
+			net.set(dimensions);
+			net.randomize(dispersion);
+			net.setEnableOffsets(enable_offsets);
+				
+			return net;
+		};
+		
 		// Removes all networks in the specified directory
 		int remove_directory(const std::string& directory) {
 			return std::experimental::filesystem::remove_all(directory);
