@@ -10,7 +10,7 @@
 namespace NNSpace {
 	namespace Backpropagation {
 		
-		
+
 		// M U L T I L A Y E R
 		
 		// Train using backpropagation
