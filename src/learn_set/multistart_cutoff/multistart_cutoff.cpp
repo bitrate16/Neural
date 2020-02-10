@@ -20,9 +20,6 @@
 
 // g++ -O3 src/learn_set/multistart_cutoff/multistart_cutoff.cpp -o bin/multistart_cutoff -Iinclude -lstdc++fs
 
-// ./bin/generate_set 0.0 1.0 100000 "sin(t * 2.0 * 3.14) * 0.5 + 0.5" input/train.nse
-// ./bin/generate_set 0.0 1.0 100 "sin(t * 2.0 * 3.14) * 0.5 + 0.5" input/test.nse
-
 // g++ -O3 src/learn_set/multistart_cutoff/multistart_cutoff.cpp -o bin/multistart_cutoff -Iinclude -lstdc++fs && ./bin/multistart_cutoff 3 784 100 10 10.0 1000 TanH input output/mc_network.neetwook
 
 int main(int argc, char** argv) {

@@ -20,10 +20,8 @@
 
 // g++ -O3 src/learn_set/backpropagation/backpropagation.cpp -o bin/backpropagation -Iinclude -lstdc++fs
 
-// ./bin/generate_set 0.0 1.0 100000 "sin(t * 2.0 * 3.14) * 0.5 + 0.5" input/train.nse
-// ./bin/generate_set 0.0 1.0 100 "sin(t * 2.0 * 3.14) * 0.5 + 0.5" input/test.nse
-
 // g++ -O3 src/learn_set/backpropagation/backpropagation.cpp -o bin/backpropagation -Iinclude -lstdc++fs && ./bin/backpropagation 3 784 100 10 10.0 TanH input output/mc_network.neetwook
+
 
 int main(int argc, char** argv) {
 	

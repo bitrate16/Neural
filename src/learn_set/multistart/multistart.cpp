@@ -4,6 +4,7 @@
 #include <cstring>
 #include <cmath>
 #include <chrono>
+#include <csignal>
 
 #include "NetworkTestingCommon.h"
 
@@ -20,10 +21,16 @@
 
 // g++ -O3 src/learn_set/multistart/multistart.cpp -o bin/multistart -Iinclude -lstdc++fs
 
-// ./bin/generate_set 0.0 1.0 100000 "sin(t * 2.0 * 3.14) * 0.5 + 0.5" input/train.nse
-// ./bin/generate_set 0.0 1.0 100 "sin(t * 2.0 * 3.14) * 0.5 + 0.5" input/test.nse
-
 // g++ -O3 src/learn_set/multistart/multistart.cpp -o bin/multistart -Iinclude -lstdc++fs && ./bin/multistart 3 784 100 10 10.0 100 TanH input output/mc_network.neetwook
+
+// Allow interrupt learning process and dump current results
+bool learning_state = 1;
+
+void interrupt_signal(int signum) {
+	signal(SIGINT, interrupt_signal);
+	learning_state = 0;
+}
+
 
 int main(int argc, char** argv) {
 	
@@ -101,13 +108,18 @@ int main(int argc, char** argv) {
 	int         min_error_id = 0;
 	long double min_error    = std::numeric_limits<long double>::max();
 	
+	// Set up interrupt listener
+	signal(SIGINT, interrupt_signal);
+	
 	// 4. Train networks
-	for (int i = 0; i < networks_count; ++i) {
+	for (int i = 0; i < networks_count && learning_state; ++i) {
 		
 		NNSpace::train_mnist_network_backpropagation(networks[i], dataset, 0, dataset.training_images.size(), dimensions[L-1], 1);
 		
 		long double error = NNSpace::calculate_mnist_match_error(networks[i], dataset, dataset.test_images.size(), dimensions[L-1]);
 		std::cout << "Network #" << i << " error: " << error << std::endl;
+		
+		learn_iterations_count += dataset.training_images.size();
 		
 		if (error < min_error) {
 			min_error = error;
