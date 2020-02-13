@@ -151,10 +151,16 @@
 		
 		inline bool is_integer() { return _type == ptype::INTEGER; };
 		
+		inline int64_t get_integer() { return is_integer() ? _integer : _real; };
+		
 		// Returns reference to the double value stored in this parg.
 		inline double& real() { return _real; };
 		
 		inline bool is_real() { return _type == ptype::REAL; };
+		
+		inline double get_real() { return is_integer() ? _integer : _real; };
+		
+		inline bool is_number() { return _type == ptype::INTEGER || _type == ptype::REAL; };
 		
 		// Returns reference to the boolean value stored in this parg.
 		inline bool& boolean() { return _boolean; };

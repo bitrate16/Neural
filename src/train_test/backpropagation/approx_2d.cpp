@@ -6,11 +6,11 @@
  * Arguments:
  *  --layers=[%]     Layer count, layer size
  *  --activators=[%] Activator[i] function type
- *  Weight dispersion
- *  Enable offfsets flag
- *  Approximation function formula
- *  Approximation interval start
- *  Approximation interval end
+ *  --weight=%       Weight dispersion
+ *  --offsets=%      Enable offfsets flag
+ *  --function="%"   Approximation function formula
+ *  --start=%        Approximation interval start
+ *  --end=%          Approximation interval end
  *  
  *  
  *  
