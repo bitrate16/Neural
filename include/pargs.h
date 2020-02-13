@@ -39,7 +39,7 @@
 		STRING,
 		BOOLEAN,
 		INTEGER,
-		DOUBLE,
+		REAL,
 		ARRAY,
 		DICTIONARY
 	};
@@ -110,7 +110,7 @@
 		
 		inline static parg* Real(double d) {
 			parg* p  = new parg();
-			p->_type = ptype::DOUBLE;
+			p->_type = ptype::REAL;
 			p->_real = d;
 			return p;
 		};
@@ -149,20 +149,32 @@
 		// Returns reference to the integer value stored in this parg.
 		inline int64_t& integer() { return _integer; };
 		
+		inline bool is_integer() { return _type == ptype::INTEGER; };
+		
 		// Returns reference to the double value stored in this parg.
 		inline double& real() { return _real; };
+		
+		inline bool is_real() { return _type == ptype::REAL; };
 		
 		// Returns reference to the boolean value stored in this parg.
 		inline bool& boolean() { return _boolean; };
 		
+		inline bool is_boolean() { return _type == ptype::BOOLEAN; };
+		
 		// Returns reference to the string value stored in this parg.
 		inline std::string& string() { return _string; };
+		
+		inline bool is_string() { return _type == ptype::STRING; };
 		
 		// Returns reference to the array value stored in this parg.
 		inline std::vector<parg*>& array() { return _array; };
 		
+		inline bool is_array() { return _type == ptype::ARRAY; };
+		
 		// Returns reference to the dictionary value stored in this parg.
 		inline std::map<std::string, parg*>& dictionary() { return _dictionary; };
+		
+		inline bool is_dictionary() { return _type == ptype::DICTIONARY; };
 		
 		// Converts this parg to string value that can be used to pass 
 		//  it to the other program.
@@ -172,7 +184,7 @@
 					return "\"" + _string + "\"";
 				case INTEGER:
 					return std::to_string(_integer);
-				case DOUBLE:
+				case REAL:
 					return std::to_string(_real);
 				case BOOLEAN:
 					return _boolean ? "true" : "false";
@@ -258,9 +270,9 @@
 						size_t value_start = str.substr(cursor).find(':');
 				
 						if (value_start != std::wstring::npos) {
-							std::string key = std::string(str.begin() + cursor, str.begin() + value_start - 1);
+							std::string key = std::string(str.begin() + cursor, str.begin() + cursor + value_start);
 							
-							cursor = value_start + 1;
+							cursor += value_start + 1;
 							
 							dictionary->dictionary()[key] = parse(2);
 						} else {
@@ -269,21 +281,21 @@
 							
 							if (key1 != std::wstring::npos && key2 != std::wstring::npos) {
 								if (key1 <= key2) {
-									dictionary->dictionary()[std::string(str.begin() + cursor, str.begin() + key1)] = new parg();
-									cursor = key1;
+									dictionary->dictionary()[std::string(str.begin() + cursor, str.begin() + cursor + key1)] = new parg();
+									cursor += key1;
 								} else if (key1 > key2) {
-									dictionary->dictionary()[std::string(str.begin() + cursor, str.begin() + key2)] = new parg();
-									cursor = key2;
+									dictionary->dictionary()[std::string(str.begin() + cursor, str.begin() + cursor + key2)] = new parg();
+									cursor += key2;
 								}
 							} else if (key1 != std::wstring::npos) {
-								dictionary->dictionary()[std::string(str.begin() + cursor, str.begin() + key1)] = new parg();
-								cursor = key1;
+								dictionary->dictionary()[std::string(str.begin() + cursor, str.begin() + cursor + key1)] = new parg();
+								cursor += key1;
 							} else if (key2 != std::wstring::npos) {
-								dictionary->dictionary()[std::string(str.begin() + cursor, str.begin() + key2)] = new parg();
-								cursor = key2;
+								dictionary->dictionary()[std::string(str.begin() + cursor, str.begin() + cursor + key2)] = new parg();
+								cursor += key2;
 							} else {
 								dictionary->dictionary()[std::string(str.begin() + cursor, str.end())] = new parg();
-								cursor = key2;
+								cursor = str.size();
 							}
 						}
 						
@@ -331,7 +343,7 @@
 				
 				if (is_real && !is_int)
 					return parg::Real(real);
-				if (!is_real && is_int)
+				if (is_real && is_int)
 					return parg::Integer((int64_t) integer);
 				
 				return parg::String(strv);
@@ -352,12 +364,15 @@
 				// Try parse =
 				size_t value_start = str.find('=');
 				
-				if (value_start != std::wstring::npos)
+				if (_values.find(str) != _values.end())
+					delete _values[str];
+				
+				if (value_start == std::wstring::npos)
 					_values[str] = new parg();
 				else {
 					pparser p(std::string(str.begin() + value_start + 1, str.end()));
 					
-					_values[std::string(str.begin(), str.begin() + value_start - 1)] = p.parse();
+					_values[std::string(str.begin(), str.begin() + value_start)] = p.parse();
 				}
 			}
 		};
