@@ -1,3 +1,3 @@
-#include "NetTestCommon.h"
+#include "pargs.h"
 
 int main() {};

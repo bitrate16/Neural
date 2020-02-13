@@ -38,7 +38,8 @@
 	enum ptype {
 		STRING,
 		BOOLEAN,
-		NUMBER,
+		INTEGER,
+		DOUBLE,
 		ARRAY,
 		DICTIONARY
 	};
@@ -58,8 +59,11 @@
 		// Store parsed value of the array.
 		std::vector<parg*> _array;
 		
-		// Store parsed number value
-		int64_t _number;
+		// Store parsed integer value
+		int64_t _integer;
+		
+		// Store parsed double value
+		double _real;
 		
 		// Store parsed boolean value
 		bool _boolean;
@@ -84,49 +88,69 @@
 			this->_type = ptype::STRING;
 		};
 		
-		parg(uint64_t num) {
-			this->_number = num;
-			this->_type = ptype::NUMBER;
-		};
-		
-		parg(bool bo) {
-			this->_boolean = bo;
-			this->_type = ptype::BOOLEAN;
-		};
-		
-		parg(const std::string& str) {
-			this->_str = str;
-			this->_type = ptype::STRING;
-		};
-		
-		parg(const std::vector<parg*>& arr) {
-			this->_array = arr;
-			this->_type = ptype::ARRAY;
-		};
-		
-		parg(const std::map<std::string, parg*>& dict) {
-			this->_dictionary = dict;
-			this->_type = ptype::DICTIONARY;
-		};
-		
 		~parg() {
 			switch (_type) {
 				case ARRAY: {
-					for (int i = 0; i < _array.size(); ++i) {
+					for (int i = 0; i < _array.size(); ++i)
 						delete _array[i];
 				}
 				case DICTIONARY: {
-					for (std::pair<std::string, parg*>& x: _dictionary) 
+					for (auto& x: _dictionary) 
 						delete x.second;
 				}
 			}
 		};
 		
+		inline static parg* Integer(int64_t i) {
+			parg* p  = new parg();
+			p->_type = ptype::INTEGER;
+			p->_integer = i;
+			return p;
+		};
+		
+		inline static parg* Real(double d) {
+			parg* p  = new parg();
+			p->_type = ptype::DOUBLE;
+			p->_real = d;
+			return p;
+		};
+		
+		inline static parg* Boolean(bool i) {
+			parg* p  = new parg();
+			p->_type = ptype::BOOLEAN;
+			p->_boolean = i;
+			return p;
+		};
+		
+		inline static parg* String(const std::string& i) {
+			parg* p  = new parg();
+			p->_type = ptype::STRING;
+			p->_string = i;
+			return p;
+		};
+		
+		inline static parg* Array(const std::vector<parg*>& i) {
+			parg* p  = new parg();
+			p->_type = ptype::ARRAY;
+			p->_array = i;
+			return p;
+		};
+		
+		inline static parg* Dictionary(const std::map<std::string, parg*>& i) {
+			parg* p  = new parg();
+			p->_type = ptype::DICTIONARY;
+			p->_dictionary = i;
+			return p;
+		};
+		
 		// Returns type of this parg value.
 		inline ptype type() { return _type; };
 		
-		// Returns reference to the number value stored in this parg.
-		inline int64_t& number() { return num; };
+		// Returns reference to the integer value stored in this parg.
+		inline int64_t& integer() { return _integer; };
+		
+		// Returns reference to the double value stored in this parg.
+		inline double& real() { return _real; };
 		
 		// Returns reference to the boolean value stored in this parg.
 		inline bool& boolean() { return _boolean; };
@@ -135,10 +159,10 @@
 		inline std::string& string() { return _string; };
 		
 		// Returns reference to the array value stored in this parg.
-		inline std::vector<parg>& array() { return _array; };
+		inline std::vector<parg*>& array() { return _array; };
 		
 		// Returns reference to the dictionary value stored in this parg.
-		inline std::map<std::string, parg>& dictionary() { return _dictionary; };
+		inline std::map<std::string, parg*>& dictionary() { return _dictionary; };
 		
 		// Converts this parg to string value that can be used to pass 
 		//  it to the other program.
@@ -146,8 +170,10 @@
 			switch (_type) {
 				case STRING: 
 					return "\"" + _string + "\"";
-				case NUMBER:
-					return str::to_string(_number);
+				case INTEGER:
+					return std::to_string(_integer);
+				case DOUBLE:
+					return std::to_string(_real);
 				case BOOLEAN:
 					return _boolean ? "true" : "false";
 				case ARRAY: {
@@ -156,7 +182,7 @@
 					for (int i = 0; i < _array.size(); ++i) {
 						ss << _array[i]->to_string();
 						if (i != _array.size() - 1)
-							ss << ',':
+							ss << ',';
 					}
 					ss << ']';
 					return ss.str();
@@ -165,7 +191,7 @@
 					std::stringstream ss;
 					ss << '{';
 					int i = 0;
-					for (std::pair<std::string, parg*>& x: _dictionary) {
+					for (auto& x: _dictionary) {
 						if (i)
 							ss << ',';
 						++i;
@@ -192,10 +218,11 @@
 				str = s;
 			}
 			
-			parg* parse() {
-				
-				// XXX: Rewrite. Symmetrically parse, removing brackets
-				
+			// Parse until reaching:
+			// 0 - nothing
+			// 1 - , or ] in array parse
+			// 2 - , or } in dictionary parse
+			parg* parse(int parent_object = 0) {				
 				
 				if (cursor >= str.size())
 					return new parg();
@@ -204,10 +231,11 @@
 				if (str[cursor] == '[') {
 					++cursor;
 					
-					parg* array = new parg(ptype::ARRAY);
+					parg* array = new parg();
+					array->_type = ptype::ARRAY;
 					
 					while (cursor < str.size() && str[cursor] != ']') {
-						array->array().push_back(parse());
+						array->array().push_back(parse(1));
 						
 						if (cursor < str.size() && str[cursor] == ',')
 							++cursor;
@@ -223,7 +251,8 @@
 				if (str[cursor] == '{') {
 					++cursor;
 					
-					parg* dictionary = new parg(ptype::DICTIONARY);
+					parg* dictionary = new parg();
+					dictionary->_type = ptype::DICTIONARY;
 					
 					while (cursor < str.size() && str[cursor] != '}') {
 						size_t value_start = str.substr(cursor).find(':');
@@ -233,7 +262,7 @@
 							
 							cursor = value_start + 1;
 							
-							dictionary->dictionary()[key] = parse();
+							dictionary->dictionary()[key] = parse(2);
 						} else {
 							size_t key1 = str.substr(cursor).find(',');
 							size_t key2 = str.substr(cursor).find('}');
@@ -268,24 +297,44 @@
 					return dictionary;
 				}
 				
-				// Check for number
-				if (str[cursor] == '[') {
-					++cursor;
-					
-					parg* array = new parg(ptype::ARRAY);
-					
-					while (cursor < str.size() && str[cursor] != ']') {
-						array->array().push_back(parse());
-						
-						if (cursor < str.size() && str[cursor] == ',')
-							++cursor;
-						if (cursor >= str.size())
-							break;
-					}
-					
-					++cursor;
-					return array;
+				// Read full string
+				int ind = cursor;
+				for (; ind < str.size(); ++ind) {
+					if (parent_object == 1 && (str[ind] == ',' || str[ind] == ']'))
+						break;
+					if (parent_object == 2 && (str[ind] == ',' || str[ind] == '}'))
+						break;
 				}
+				
+				std::string strv(str.begin() + cursor, str.begin() + ind);
+				cursor = ind;
+				
+				// Check for boolean
+				if (strv == "true")
+					return parg::Boolean(true);
+				if (strv == "false")
+					return parg::Boolean(false);
+				
+				// Check for number
+				bool is_real    = 0;
+				double real     = 0;
+				bool is_int     = 0;
+				int64_t integer = 0;
+				
+				auto stream = std::istringstream(strv);
+				stream >> real;      
+				is_real = !stream.fail() && stream.eof();
+				
+				stream = std::istringstream(strv);
+				stream >> integer;      
+				is_int = !stream.fail() && stream.eof();
+				
+				if (is_real && !is_int)
+					return parg::Real(real);
+				if (!is_real && is_int)
+					return parg::Integer((int64_t) integer);
+				
+				return parg::String(strv);
 			};
 		};
 
@@ -301,46 +350,46 @@
 				std::string str = argv[i];
 				
 				// Try parse =
-				size_t value_start = argument.find('=');
+				size_t value_start = str.find('=');
 				
 				if (value_start != std::wstring::npos)
-					_values[str] = "";
+					_values[str] = new parg();
 				else {
-					pparser p(std::string(str.begin() + value_start + 1, std.end());
+					pparser p(std::string(str.begin() + value_start + 1, str.end()));
 					
-					_values[std::string(std.begin(), str.begin() + value_start - 1)] = p.parse();
+					_values[std::string(str.begin(), str.begin() + value_start - 1)] = p.parse();
 				}
 			}
 		};
-	};
 	
-	// Returns reference to array of parsed values
-	inline std::map<std::string, parg*>& values() { return values; };
-	
-	// Return value by key if it exists, else nullptr
-	inline parg* get(const std::string& key) {
-		auto val = _values.find(key);
-		if (val != _values.end())
-			return val.second;
-		return nullptr;
-	};
-	
-	// Return value by key if it exists, else nullptr
-	inline parg* contains(const std::string& key) {
-		return _values.find(key) != _values.end();
-	};
-	
-	// Converts parsed values to strings
-	std::string to_string() {
-		std::stringstream ss;
-		int i = 0;
-		for (std::pair<std::string, parg*>& x: _values) {
-			if (i)
-				ss << ' ';
-			++i;
-			
-			ss << x.first << '=' << x.second->to_string();
-		}
-		return ss.str();
+		// Returns reference to array of parsed values
+		inline std::map<std::string, parg*>& values() { return _values; };
+		
+		// Return value by key if it exists, else nullptr
+		inline parg* get(const std::string& key) {
+			auto val = _values.find(key);
+			if (val != _values.end())
+				return val->second;
+			return nullptr;
+		};
+		
+		// Return value by key if it exists, else nullptr
+		inline bool contains(const std::string& key) {
+			return _values.find(key) != _values.end();
+		};
+		
+		// Converts parsed values to strings
+		std::string to_string() {
+			std::stringstream ss;
+			int i = 0;
+			for (auto& x: _values) {
+				if (i)
+					ss << ' ';
+				++i;
+				
+				ss << x.first << '=' << x.second->to_string();
+			}
+			return ss.str();
+		};
 	};
  };
