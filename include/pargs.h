@@ -200,7 +200,7 @@
 		inline bool is_dictionary() { return _type == ptype::DICTIONARY; };
 		
 		// Checks if value contains nothing (i.e. Empty string --a= )
-		inline bool none() { return _type == ptype::STRING && _string.size() = 0; };
+		inline bool none() { return _type == ptype::STRING && _string.size() == 0; };
 		
 		// Converts this parg to string value that can be used to pass 
 		//  it to the other program.
