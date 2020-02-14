@@ -243,7 +243,6 @@
 		};
 	};
 	
-	// XXX: Parse
 	class pargs {
 		// Used for parsing input string int objects.
 		class pparser {
@@ -293,17 +292,21 @@
 					dictionary->_type = ptype::DICTIONARY;
 					
 					while (cursor < str.size() && str[cursor] != '}') {
-						size_t value_start = str.substr(cursor).find(':');
+						std::string sub_str = str.substr(cursor);
+						size_t value_start = sub_str.find(':');
+						size_t colon_start = sub_str.find(',');
+						size_t curly_start = sub_str.find('}');
 				
-						if (value_start != std::wstring::npos) {
+						if (value_start != std::wstring::npos && value_start < colon_start && value_start < curly_start) {
 							std::string key = std::string(str.begin() + cursor, str.begin() + cursor + value_start);
 							
 							cursor += value_start + 1;
 							
 							dictionary->dictionary()[key] = parse(2);
 						} else {
-							size_t key1 = str.substr(cursor).find(',');
-							size_t key2 = str.substr(cursor).find('}');
+							sub_str = str.substr(cursor);
+							size_t key1 = sub_str.find(',');
+							size_t key2 = sub_str.find('}');
 							
 							if (key1 != std::wstring::npos && key2 != std::wstring::npos) {
 								if (key1 <= key2) {
