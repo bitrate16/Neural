@@ -8,7 +8,9 @@ namespace NNSpace {
 	
 	// https://habr.com/ru/post/198268/
 	
-	class MLNetwork : public Network {
+	// XXX: Change run method to take reference of the output vector
+	// XXX: Quadratic error calculate as SQRT(SUM / n) or SQRT(SUM / (n-1))?
+	class MLNet : public Network {
 		
 	public:
 		
@@ -23,9 +25,9 @@ namespace NNSpace {
 		
 		bool enable_offsets = 0;
 		
-		MLNetwork() : Network() {};
+		MLNet() : Network() {};
 		
-		MLNetwork(const std::vector<int>& dim) : Network() {
+		MLNet(const std::vector<int>& dim) : Network() {
 			set(dim);
 		};
 		

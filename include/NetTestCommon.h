@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <random>
 #include <vector>
+#include <cmath>
 
 #include "mnist/mnist_reader.hpp"
 
@@ -55,8 +56,8 @@ namespace NNSpace {
 		//  std::pair of
 		//   double
 		//   double
-		std::vector<std::pair<double, double>> gen_approx_fun(std::function<double(double)> function, double a, double b, int amount, bool random) {
-			std::vector<std::pair<double, double>> points(amount);
+		void gen_approx_fun(std::vector<std::pair<double, double>>& points, std::function<double(double)> function, double a, double b, int amount, bool random) {
+			points.resize(amount);
 			
 			if (random) {
 				std::random_device rd;
@@ -88,8 +89,8 @@ namespace NNSpace {
 		//  std::pair of
 		//   std::vector of double
 		//   double
-		std::vector<std::pair<std::vector<double>, double>> gen_approx_fun(std::function<double(std::vector<double>&)> function, std::vector<double>& a, std::vector<double>& b, int amount) {
-			std::vector<std::pair<std::vector<double>, double>> points(amount);
+		void gen_approx_fun(std::vector<std::pair<std::vector<double>, double>>& points, std::function<double(std::vector<double>&)> function, std::vector<double>& a, std::vector<double>& b, int amount) {
+			points.resize(amount);
 			
 			for (int i = 0; i < amount; ++i) 
 				points[i] = std::pair<std::vector<double>, double>(std::vector<double>(a.size()), 0);
@@ -222,6 +223,10 @@ namespace NNSpace {
 			int x_size = 0;
 			
 			is >> count >> x_size;
+			
+			if (x_size != 1)
+				return 0;
+			
 			if (is.fail()) {
 				os.close();
 				return 0;
@@ -249,9 +254,9 @@ namespace NNSpace {
 		}
 	
 		// Split Approx set
-		std::vector<std::vector<std::pair<double, double>>> split_approx_set(std::vector<std::pair<double, double>>& set, int subset_size) {
+		void split_approx_set(std::vector<std::vector<std::pair<double, double>>>& sets, std::vector<std::pair<double, double>>& set, int subset_size) {
 			int set_count = set.size() / subset_size;
-			std::vector<std::vector<std::pair<double, double>>> sets(set_count);
+			sets.resize(set_count);
 			
 			int set_ind = 0;
 			for (int i = 0; i < set_count; ++i) {
@@ -263,9 +268,9 @@ namespace NNSpace {
 		};
 	
 		// Split Approx set
-		std::vector<std::vector<std::pair<std::vector<double>, double>>> split_approx_set(std::vector<std::pair<std::vector<double>, double>>& set, int subset_size) {
+		void split_approx_set(std::vector<std::vector<std::pair<std::vector<double>, double>>>& sets, std::vector<std::pair<std::vector<double>, double>>& set, int subset_size) {
 			int set_count = set.size() / subset_size;
-			std::vector<std::vector<std::pair<std::vector<double>, double>>> sets(set_count);
+			sets.resize(set_count);
 			
 			int set_ind = 0;
 			for (int i = 0; i < set_count; ++i) {
@@ -277,7 +282,7 @@ namespace NNSpace {
 		};
 		
 		// Split Approx set 2^i
-		std::vector<std::vector<std::pair<double, double>>> split_approx_set_2i(std::vector<std::pair<double, double>>& set, int subset_size) {
+		void split_approx_set_2i(std::vector<std::vector<std::pair<double, double>>>& sets, std::vector<std::pair<double, double>>& set, int subset_size) {
 			int count = 0;
 			unsigned int size = set.size();
 			while (size) {
@@ -285,7 +290,7 @@ namespace NNSpace {
 				size >>= 1;
 			}
 			
-			std::vector<std::vector<std::pair<double, double>>> sets(set_count);
+			sets.resize(set_count);
 			
 			int a = 0;
 			int b = 1;
@@ -299,7 +304,7 @@ namespace NNSpace {
 		};
 	
 		// Split Approx set 2^i
-		std::vector<std::vector<std::pair<std::vector<double>, double>>> split_approx_set_2i(std::vector<std::pair<std::vector<double>, double>>& set, int subset_size) {
+		void split_approx_set_2i(std::vector<std::vector<std::pair<std::vector<double>, double>>>& sets, std::vector<std::pair<std::vector<double>, double>>& set, int subset_size) {
 			int count = 0;
 			unsigned int size = set.size();
 			while (size) {
@@ -307,7 +312,7 @@ namespace NNSpace {
 				size >>= 1;
 			}
 			
-			std::vector<std::vector<std::pair<double, double>>> sets(set_count);
+			sets.resize(set_count);
 			
 			int a = 0;
 			int b = 1;
@@ -325,8 +330,8 @@ namespace NNSpace {
 		
 		
 		// Generate N random networks
-		std::vector<NNSpace::MultiLayerNetwork> generate_random_networks(std::vector<int>& dimenstions, double dispersion, bool enable_offsets, int count) {
-			std::vector<NNSpace::MultiLayerNetwork> net(count);
+		void generate_random_networks(std::vector<NNSpace::MLNet>& net, std::vector<int>& dimensions, double dispersion, bool enable_offsets, int count) {
+			net.resize(count);
 			
 			for (int i = 0; i < count; ++i) {
 				net[i].set(dimensions);
@@ -338,9 +343,7 @@ namespace NNSpace {
 		};
 		
 		// Generate random network
-		NNSpace::MultiLayerNetwork generate_random_networks(std::vector<int>& dimenstions, double dispersion, bool enable_offsets, int count) {
-			NNSpace::MultiLayerNetwork net(dimensions);
-			
+		void generate_random_network(NNSpace::MLNet& net, std::vector<int>& dimensions, double dispersion, bool enable_offsets) {
 			net.set(dimensions);
 			net.randomize(dispersion);
 			net.setEnableOffsets(enable_offsets);
@@ -354,7 +357,7 @@ namespace NNSpace {
 		};
 
 		// Write networks
-		bool write_networks(std::vector<NNSpace::MultiLayerNetwork>& net, std::string& out_dir) {
+		bool write_networks(std::vector<NNSpace::MLNet>& net, std::string& out_dir) {
 			std::error_code ec;
 			if (!std::experimental::filesystem::create_directories(out_dir, ec) && ec)
 				return 0;
@@ -377,7 +380,7 @@ namespace NNSpace {
 		};
 		
 		// Read networks
-		bool read_networks(std::vector<NNSpace::MultiLayerNetwork>& net, std::string& in_dir, int count) {
+		bool read_networks(std::vector<NNSpace::MLNet>& net, std::string& in_dir, int count) {
 			net.resize(count);
 			
 			for (int i = 0; i < count; ++i) {
@@ -397,7 +400,7 @@ namespace NNSpace {
 		};
 		
 		// Write single ordered network
-		bool write_network(NNSpace::MultiLayerNetwork& net, std::string& out_dir, int i) {
+		bool write_network(NNSpace::MLNet& net, std::string& out_dir, int i) {
 			std::error_code ec;
 			if (!std::experimental::filesystem::create_directories(out_dir, ec) && ec)
 				return 0;
@@ -418,7 +421,7 @@ namespace NNSpace {
 		};
 		
 		// Read single ordered network
-		bool write_network(NNSpace::MultiLayerNetwork& net, std::string& in_dir, int i) {
+		bool write_network(NNSpace::MLNet& net, std::string& in_dir, int i) {
 			std::ifstream is;
 			std::string filename = in_dir + "/network_" + std::to_string(i) + ".neetwook";
 			
@@ -431,6 +434,65 @@ namespace NNSpace {
 			is.close();
 			
 			return 1;
+		};
+	
+		
+		// T E S T I N G
+		
+		
+		// Calculate average error on the output layer
+		// Ltype defines the L1 or L2 usage.
+		double calculate_approx_error(NNSpace::MLNet& net, std::vector<std::pair<double, double>>& set, int Ltype = 1) {
+			if (set.size() == 0)
+				return 0;
+			
+			std::vector<double> input(1);
+			std::vector<double> output;
+			
+			long double error = 0;
+			
+			for (int i = 0; i < set.size(); ++i) {
+				input[0] = set[i].first;
+				output   = network.run(input);
+				
+				long double dv = set[i].y - output[0];
+				if (Ltype == 1)
+					error += std::fabs(dv);
+				if (Ltype == 2)
+					error += dv * dv;
+			}
+			
+			if (Ltype == 1)
+				return error / (double) set.size();
+			if (Ltype == 2)
+				return math::sqrt(error / (double) set.size());
+		};
+		
+		
+		// Calculate average error on the output layer
+		// Ltype defines the L1 or L2 usage.
+		double calculate_approx_error(NNSpace::MLNet& net, std::vector<std::pair<std::vector<double>, double>>& set, int Ltype = 1) {
+			if (set.size() == 0)
+				return 0;
+			
+			std::vector<double> output;
+			
+			long double error = 0;
+			
+			for (int i = 0; i < set.size(); ++i) {
+				output   = network.run(set[i].first);
+				
+				long double dv = set[i].y - output[0];
+				if (Ltype == 1)
+					error += std::fabs(dv);
+				if (Ltype == 2)
+					error += dv * dv;
+			}
+			
+			if (Ltype == 1)
+				return error / (double) set.size();
+			if (Ltype == 2)
+				return math::sqrt(error / (double) set.size());
 		};
 	};
 };

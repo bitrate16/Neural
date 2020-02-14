@@ -8,7 +8,7 @@ namespace NNSpace {
 	
 	// https://habr.com/ru/post/198268/
 	
-	class SLNetwork : public Network {
+	class SLNet : public Network {
 		
 	public:
 		
@@ -29,16 +29,16 @@ namespace NNSpace {
 		
 		NetworkFunction* middle_act, *output_act;
 		
-		SLNetwork() : Network() {
+		SLNet() : Network() {
 			middle_act = new Linear();
 			output_act = new Linear();
 		};
 		
-		SLNetwork(int input, int middle, int output) : Network() {
+		SLNet(int input, int middle, int output) : Network() {
 			set(input, middle, output);
 		};
 		
-		~SLNetwork() {
+		~SLNet() {
 			delete middle_act;
 			delete output_act;
 		};

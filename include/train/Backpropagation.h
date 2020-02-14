@@ -8,7 +8,7 @@
 // Source code for performing training of the networks 
 //  using the Backpropagation algorithm.
 namespace NNSpace {
-	namespace Backpropagation {
+	namespace backpropagation {
 		
 
 		// M U L T I L A Y E R

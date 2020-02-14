@@ -151,6 +151,7 @@
 		
 		inline bool is_integer() { return _type == ptype::INTEGER; };
 		
+		// Returns integer value or cast real to integer
 		inline int64_t get_integer() { return is_integer() ? _integer : _real; };
 		
 		// Returns reference to the double value stored in this parg.
@@ -158,6 +159,7 @@
 		
 		inline bool is_real() { return _type == ptype::REAL; };
 		
+		// Returns real value or cast integer to real
 		inline double get_real() { return is_integer() ? _integer : _real; };
 		
 		inline bool is_number() { return _type == ptype::INTEGER || _type == ptype::REAL; };
@@ -166,6 +168,9 @@
 		inline bool& boolean() { return _boolean; };
 		
 		inline bool is_boolean() { return _type == ptype::BOOLEAN; };
+		
+		// Returns bool value casting any different value to false
+		inline bool get_boolean() { return _type == ptype::BOOLEAN && _boolean; };
 		
 		// Returns reference to the string value stored in this parg.
 		inline std::string& string() { return _string; };
@@ -177,10 +182,25 @@
 		
 		inline bool is_array() { return _type == ptype::ARRAY; };
 		
+		// Checks if array contains desired string value
+		bool array_contains(const std::string& str) {
+			if (!is_array())
+				return 0;
+			
+			for (int i = 0; i < _array.size(); ++i)
+				if (_array[i] && _array[i]->is_string() && _array[i]->string() == str)
+					return 1;
+				
+			return 0;
+		};
+		
 		// Returns reference to the dictionary value stored in this parg.
 		inline std::map<std::string, parg*>& dictionary() { return _dictionary; };
 		
 		inline bool is_dictionary() { return _type == ptype::DICTIONARY; };
+		
+		// Checks if value contains nothing (i.e. Empty string --a= )
+		inline bool none() { return _type == ptype::STRING && _string.size() = 0; };
 		
 		// Converts this parg to string value that can be used to pass 
 		//  it to the other program.
@@ -392,6 +412,10 @@
 			if (val != _values.end())
 				return val->second;
 			return nullptr;
+		};
+		
+		inline parg* operator[](const std::string &name) {
+			return get(name);
 		};
 		
 		// Return value by key if it exists, else nullptr
