@@ -20,7 +20,7 @@
  *  --log=[%]        Log type (TRAIN_TIME, TRAIN_OPERATIONS, TRAIN_ITERATIONS, TEST_ERROR)
  *
  * Make:
- * g++ src/train_test/backpropagation/approx_2d.cpp -o bin/backpropagation_approx_2d -O0 --std=c++11 -Iinclude -lstdc++fs
+ * g++ src/train_test/backpropagation/approx_2d.cpp -o bin/backpropagation_approx_2d -O3 --std=c++11 -Iinclude -lstdc++fs
  */
 
 // Simply prints out the message and exits.
