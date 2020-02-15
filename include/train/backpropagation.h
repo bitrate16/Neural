@@ -107,7 +107,7 @@ namespace NNSpace {
 		//  1 - L1
 		//  2 - L2
 		double train_error(NNSpace::MLNet& net, int Ltype, const std::vector<double>& input, const std::vector<double>& output_teach, double rate) {
-			double out_error_value = 0.0;
+			long double out_error_value = 0.0;
 			std::vector<std::vector<double>> layers(net.dimensions.size()); // [0-N]
 			layers[0] = input;
 			
@@ -195,6 +195,7 @@ namespace NNSpace {
 				return std::sqrt(out_error_value / (double) net.dimensions.back());
 			else if (Ltype == 1)
 				return out_error_value / (double) net.dimensions.back();
+			return 0.0;
 		};
 	
 		
@@ -306,7 +307,7 @@ namespace NNSpace {
 		//  1 - L1
 		//  2 - L2
 		double train_error(NNSpace::SLNet& net, int Ltype, const std::vector<double>& input, const std::vector<double>& output_teach, double rate) {
-			double out_error_value = 0.0;
+			long double out_error_value = 0.0;
 			std::vector<double> middle_raw(net.dimensions.middle);
 			std::vector<double> middle(net.dimensions.middle);
 			std::vector<double> output_raw(net.dimensions.output);
@@ -407,6 +408,7 @@ namespace NNSpace {
 				return std::sqrt(out_error_value / (double) net.dimensions.output);
 			else if (Ltype == 1)
 				return out_error_value / (double) net.dimensions.output;
+			return 0.0;
 		};
 	};
 };

@@ -199,6 +199,14 @@
 		
 		inline bool is_dictionary() { return _type == ptype::DICTIONARY; };
 		
+		// Checks if array contains desired string value
+		bool dictionary_contains(const std::string& str) {
+			if (!is_dictionary())
+				return 0;
+			
+			return dictionary().find(str) != dictionary().end();
+		};
+		
 		// Checks if value contains nothing (i.e. Empty string --a= )
 		inline bool none() { return _type == ptype::STRING && _string.size() == 0; };
 		

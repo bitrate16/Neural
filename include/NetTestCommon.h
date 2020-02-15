@@ -278,10 +278,8 @@ namespace NNSpace {
 		void split_approx_set_2i(std::vector<std::vector<std::pair<double, double>>>& sets, std::vector<std::pair<double, double>>& set) {
 			int count = 0;
 			unsigned int size = set.size();
-			while (size) {
+			while (size >>= 1) 
 				++count;
-				size >>= 1;
-			}
 			
 			sets.resize(count);
 			
@@ -298,10 +296,8 @@ namespace NNSpace {
 		void split_approx_set_2i(std::vector<std::vector<std::pair<std::vector<double>, double>>>& sets, std::vector<std::pair<std::vector<double>, double>>& set) {
 			int count = 0;
 			unsigned int size = set.size();
-			while (size) {
+			while (size >>= 1) 
 				++count;
-				size >>= 1;
-			}
 			
 			sets.resize(count);
 			
@@ -472,6 +468,7 @@ namespace NNSpace {
 				output   = net.run(input);
 				
 				long double dv = set[i].second - output[0];
+				
 				if (Ltype == 1)
 					error += std::fabs(dv);
 				if (Ltype == 2)

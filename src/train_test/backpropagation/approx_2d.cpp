@@ -23,7 +23,7 @@
  * g++ src/train_test/backpropagation/approx_2d.cpp -o bin/backpropagation_approx_2d -O3 --std=c++11 -Iinclude -lstdc++fs
  *
  * Example:
- * ./bin/backpropagation_approx_2d --layers=[3] --activator=TanH --weight=1.0 --train=data/sin_1000.mset --test=data/sin_100.mset --output=networks/approx_sin.neetwook --log=[TRAIN_TIME,TEST_ERROR]
+ * ./bin/backpropagation_approx_2d --layers=[3] --activator=TanH --weight=1.0 --train=data/sin_1000.mset --test=data/sin_100.mset --output=networks/approx_sin.neetwook --log=[TRAIN_TIME,TEST_ERROR,TRAIN_ITERATIONS]
  */
 
 // Simply prints out the message and exits.
@@ -50,6 +50,7 @@ int main(int argc, const char** argv) {
 				exit_message("Zero layer size");
 		}
 	}
+	dimensions.back() = 1;
 	
 	// Read weight info
 	//  Input or 1.0
@@ -134,8 +135,8 @@ int main(int argc, const char** argv) {
 		if (args["--log"]->array_contains("TRAIN_TIME")) {
 			
 			// Calculate time used
-			auto train_time = std::chrono::duration_cast<std::chrono::milliseconds>(start_time - end_time).count();
-			std::cout << "TRAIN_TIME=" << train_time << std::endl;
+			auto train_time = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+			std::cout << "TRAIN_TIME=" << train_time << "ms" << std::endl;
 		}
 		if (args["--log"]->array_contains("TRAIN_ITERATIONS"))
 			std::cout << "TRAIN_ITERATIONS=" << train_iterations << std::endl;
