@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include <vector>
 #include <chrono>
 #include <limits>
@@ -21,9 +22,9 @@
  *  --offsets=%      Enable offfsets flag
  *  --train=%        Input train set
  *  --test=%         Input test set
+ *  --steps=%        Amount of steps for training
  *  --output=%       Output file for the network
  *  --Ltype=%        L1 or L2
- *  --networks=%     Cmount of startup networks
  *  --log=[%]        Log type (TRAIN_TIME, TRAIN_OPERATIONS, TRAIN_ITERATIONS, TEST_ERROR)
  *
  * Make:
@@ -38,6 +39,11 @@ inline void exit_message(const std::string& message) {
 	if (message.size())
 		std::cout << message << std::endl;
 	exit(0);
+};
+
+// Generate boolean with given probability
+bool probably_true(double p) {
+    return rand() * (1.0 / (RAND_MAX + 1.0)) < p;
 };
 
 int main(int argc, const char** argv) {
@@ -66,11 +72,6 @@ int main(int argc, const char** argv) {
 	// Read offsets flag
 	bool offsets = args["--offsets"] && args["--offsets"]->get_boolean();
 	
-	// Read networks amount
-	int count = args["--networks"] && args["--networks"]->is_integer() ? args["--networks"]->integer() : 1;
-	if (count <= 0)
-		exit_message("Invalid networks count");
-	
 	// Read Ltype
 	int Ltype = args["--Ltype"] ? args["--Ltype"]->get_integer() : 1;
 	if (Ltype != 1 && Ltype != 2)
@@ -80,34 +81,20 @@ int main(int argc, const char** argv) {
 	std::string train = args["--train"] && args["--train"]->is_string() ? args["--train"]->string() : "train.mset";
 	std::string test  = args["--test"]  && args["--test"]->is_string()  ? args["--test"]->string()  : "test.mset";
 	
-	// Calculate Af to split networks
-	int Af = 0;
-	{
-		unsigned int size = count;
-		while (size >>= 1) 
-			++Af;
-	}
+	int steps = args["--steps"] ? args["--steps"]->get_integer() : 1;
 	
 	// Read train set data
-	std::vector<std::vector<std::pair<double, double>>> train_sets;
-	{
-		std::vector<std::pair<double, double>> train_set;
-		if (!NNSpace::Common::read_approx_set(train_set, train))
-			exit_message("Set " + train + " not found");
-		
-		if (train_set.size() / Af == 0)
-			exit_message("Not enough train set size");
-		
-		NNSpace::Common::split_approx_set(train_sets, train_set, train_set.size() / Af);
-	}
+	std::vector<std::pair<double, double>> train_set;
+	if (!NNSpace::Common::read_approx_set(train_set, train))
+		exit_message("Set " + train + " not found");
 	
 	std::vector<std::pair<double, double>> test_set;
 	if (!NNSpace::Common::read_approx_set(test_set,  test))
 		exit_message("Set " + test + " not found");
 	
 	// Generate network
-	std::vector<NNSpace::MLNet> networks;
-	NNSpace::Common::generate_random_networks(networks, dimensions, wD, offsets, count);	
+	NNSpace::MLNet network;
+	NNSpace::Common::generate_random_network(network, dimensions, wD, offsets);	
 	
 	// Add activators (default is linear)
 	if (args["--activator"]) {
@@ -148,78 +135,76 @@ int main(int argc, const char** argv) {
 	auto start_time = std::chrono::high_resolution_clock::now();
 	unsigned long train_iterations = 0;
 	
-	std::vector<double> input(1);
-	std::vector<double> output(1);
-	
-	// Training rate value
-	std::vector<double> rates(networks.size(), 0.5);
-	// Testing error value
-	// a - before train
-	// b - after train
-	// d - error delta
-	std::vector<double> errors_a(networks.size(), 0.5);
-	std::vector<double> errors_b(networks.size(), 0.5);
-	std::vector<double> errors_d(networks.size(), 0.5);
-	// Maximal error value 
-	double error_max = 0.0;
-	// Minimal Error delta
-	double varie_min = 2.0;
-	// Index array for sorting the networks by their errro value
-	std::vector<int> index_array(networks.size());
-	
-	// Iterate over epochs
-	for (int epo = 0; epo < Af; ++epo) {
-		error_max      = 0.0;
-		varie_min      = std::numeric_limits<long double>::max();
-		
-		for (int k = 0; k < networks.size(); ++k) {
-			errors_a[k]    = errors_b[k];
-			index_array[k] = k;
-			
-			// Train with backpropagation
-			for (auto& p : train_sets[epo]) {
-				input[0]  = p.first;
-				output[0] = p.second;
-				rates[k]  = NNSpace::backpropagation::train_error(networks[k], Ltype, input, output, rates[k]);
-			}
-			
-			train_iterations += train_sets[epo].size();
-			
-			// Calculate error value on testing set
-			errors_b[k] = NNSpace::Common::calculate_approx_error(networks[k], test_set, Ltype);
-			errors_d[k] = errors_b[k] - errors_a[k];
-			
-			// Update min/max
-			if (varie_min > errors_d[k])
-				varie_min = errors_d[k];
-			if (error_max < errors_b[k])
-				error_max = errors_b[k];
+	// Initialize positive step probability & step value
+	std::vector<std::vector<std::vector<double>>> positive_probability(dimensions.size());
+	std::vector<std::vector<std::vector<double>>> step(dimensions.size());
+	for (int i = 0; i < dimensions.size() - 1; ++i) {
+		positive_probability[i].resize(dimensions[i]);
+		step[i].resize(dimensions[i]);
+		for (int j = 0; j < dimensions[i + 1]; ++j) {
+			positive_probability[i][j].resize(dimensions[i + 1], 0.5);
+			step[i][j].resize(dimensions[i + 1], 0.5);
 		}
+	}
+	
+	// Error value before step
+	double error_a = 0.5;
+	// Errro value after step
+	double error_b = 0.5;
+	// Error change speed
+	double error_d = 0.0;
+	
+	// For each step perform weight correction depending on selected direction
+	for (int s = 0; s < steps; ++s) {
+		error_a = error_b;
 		
-		// Order networks by their testing error value
-		std::sort(index_array.begin(), index_array.end(), [&errors_d, &errors_b, &error_max, &varie_min](const int& a, const int& b) {
-			return 	(error_max - errors_d[a] + errors_b[a] - varie_min)  // Distance from A to error values
-					>
-					(error_max - errors_d[b] + errors_b[b] - varie_min); // Distance from B to error values
-		});
+		// Perform correction depending on probability
+		for (int d = 0; d < dimensions.size() - 1; ++d)
+			for (int i = 0; i < dimensions[d]; ++i)
+				for (int j = 0; j < dimensions[d + 1]; ++j) {
+					
+					// Change probability depending on error_d and error_b after previous step
+					if (s) {
+						// De - Delta error
+						// D  - step
+						// e  - last error
+						// 
+						// Probability calibration:
+						// 	Pi+1 = Pi * (1 + De)
+						// 
+						// Step calibration (two variants) (De > 0):
+						//  I:  Di+1 = Di * 2 * (1 - De) * 2 * e
+						//  II: Di+1 = 2 * (1 - e)
+						
+						#define METHOD_I
+						// #define METHOD_II
+						
+						#ifdef METHOD_I
+							if (error_d > 0)
+								step[d][i][j] = step[d][i][j] * 2.0 * (1.0 - error_d) * 2.0 * error_b;
+						#endif
+						#ifdef METHOD_II
+							if (error_d > 0)
+								step[d][i][j] = step[d][i][j] * 2.0 * error_b;
+						#endif
+						
+						positive_probability[d][i][j] = positive_probability[d][i][j] * (1.0 + error_d);
+						if (positive_probability[d][i][j] > 1.0)
+							positive_probability[d][i][j] = 1.0;
+					}
+					
+					// Generate random direction & step on it
+					if (probably_true(positive_probability[i][j]))
+						network.W[d][i][j] += step[d][i][j];
+					else
+						network.W[d][i][j] -= step[d][i][j];
+				}
 		
-		// Reduce amount of networks by 2
-		int slice_size = index_array.size() / 2 + index_array.size() % 2;
+		// Calculate error value after step (teach_set)
+		error_b = NNSpace::Common::calculate_approx_error(network, train_set, Ltype);
 		
-		// Slice half of an array and sort because removing 
-		//  unordered indexes is undefined behaviour.
-		std::vector<int> index_array_ordered(index_array.begin(), index_array.begin() + slice_size);
-		std::sort(index_array_ordered.begin(), index_array_ordered.end(), [](const int& a, const int& b) { return a > b; });
-		
-		for (int i = 0; i < slice_size; ++i) {
-			networks.erase(networks.begin() + index_array_ordered[i]);
-			rates   .erase(rates   .begin() + index_array_ordered[i]);
-			errors_a.erase(errors_a.begin() + index_array_ordered[i]);
-			errors_b.erase(errors_b.begin() + index_array_ordered[i]);
-			errors_d.erase(errors_d.begin() + index_array_ordered[i]);
-		}
-		
-		index_array.resize(index_array.size() - slice_size);
+		// Calculate error change speed
+		error_d = error_b - error_a;
 	}
 	
 	auto end_time = std::chrono::high_resolution_clock::now();
@@ -235,7 +220,7 @@ int main(int argc, const char** argv) {
 		if (args["--log"]->array_contains("TRAIN_ITERATIONS"))
 			std::cout << "TRAIN_ITERATIONS=" << train_iterations << std::endl;
 		if (args["--log"]->array_contains("TEST_ERROR"))
-			std::cout << "TEST_ERROR=" << errors_b[0] << std::endl;
+			std::cout << "TEST_ERROR=" << error_b << std::endl;
 	}
 	
 	// Write network to file

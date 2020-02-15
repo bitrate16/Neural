@@ -16,7 +16,7 @@
  *  --train=%        Input train set
  *  --test=%         Input test set
  *  --output=%       Output file for the network
- *  --error=%        L1 or L2
+ *  --Ltype=%        L1 or L2
  *  --log=[%]        Log type (TRAIN_TIME, TRAIN_OPERATIONS, TRAIN_ITERATIONS, TEST_ERROR)
  *
  * Make:
@@ -60,7 +60,7 @@ int main(int argc, const char** argv) {
 	bool offsets = args["--offsets"] && args["--offsets"]->get_boolean();
 	
 	// Read Ltype
-	int Ltype = args["--error"] ? args["--error"]->get_integer() : 1;
+	int Ltype = args["--Ltype"] ? args["--Ltype"]->get_integer() : 1;
 	if (Ltype != 1 && Ltype != 2)
 		Ltype = 1;
 	
@@ -140,12 +140,8 @@ int main(int argc, const char** argv) {
 		}
 		if (args["--log"]->array_contains("TRAIN_ITERATIONS"))
 			std::cout << "TRAIN_ITERATIONS=" << train_iterations << std::endl;
-		if (args["--log"]->array_contains("TEST_ERROR")) {
-	
-			// Calculate error value
-			double error = NNSpace::Common::calculate_approx_error(network, test_set, Ltype);
+		if (args["--log"]->array_contains("TEST_ERROR")) 
 			std::cout << "TEST_ERROR=" << error << std::endl;
-		}
 	}
 	
 	// Write network to file
