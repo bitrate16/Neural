@@ -44,9 +44,9 @@ int main(int argc, const char** argv) {
 		dimensions.resize(args["--layers"]->array().size() + 2);
 		
 		for (int i = 0; i < args["--layers"]->array().size(); ++i) {
-			dimensions[i] = args["--layers"]->array()[i]->integer();
+			dimensions[i + 1] = args["--layers"]->array()[i]->integer();
 			
-			if (!dimensions[i])
+			if (!dimensions[i + 1])
 				exit_message("Zero layer size");
 		}
 	}
