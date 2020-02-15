@@ -190,9 +190,9 @@ namespace NNSpace {
 			// Data:{X, Y}
 			
 			if (set.size() == 0)
-				of << "0 0";
+				of << "0 1";
 			else {
-				of << set.size()   << ' ' << 2             << std::endl;
+				of << set.size() << ' ' << 1 << std::endl;
 				
 				for (int i = 0; i < set.size(); ++i)
 					of << set[i].first << ' ' << set[i].second << std::endl;
@@ -221,7 +221,7 @@ namespace NNSpace {
 			
 			is >> count >> x_size;
 			
-			if (x_size != 1)
+			if (count && x_size != 1)
 				return 0;
 			
 			if (is.fail()) {
