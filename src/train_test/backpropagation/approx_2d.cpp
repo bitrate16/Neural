@@ -10,12 +10,9 @@
  * Arguments:
  *  --layers=[%]     layer sizes
  *                   Not including the input, output layers. They are 1, 1.
- *  --activators=[%] Activator[i] function type
+ *  --activator=[%]  Activator[i] function type
  *  --weight=%       Weight dispersion
  *  --offsets=%      Enable offfsets flag
- * // --function="%"   Approximation function formula
- * // --start=%        Approximation interval start    <-- set generator
- * // --end=%          Approximation interval end
  *  --train=%        Input train set
  *  --test=%         Input test set
  *  --output=%       Output file for the network
@@ -79,6 +76,39 @@ int main(int argc, const char** argv) {
 	// Generate network
 	NNSpace::MLNet network;
 	NNSpace::Common::generate_random_network(network, dimensions, wD, offsets);
+	
+	// Add activators (default is linear)
+	if (args["--activator"]) {
+		if (args["--activator"]->is_string()) {
+			if (args["--activator"]->string() == "LINEAR")          network.setActivator(new NNSpace::Linear()        );
+			if (args["--activator"]->string() == "SIGMOID")         network.setActivator(new NNSpace::Sigmoid()       );
+			if (args["--activator"]->string() == "BIPOLAR_SIGMOID") network.setActivator(new NNSpace::BipolarSigmoid());
+			if (args["--activator"]->string() == "ReLU")            network.setActivator(new NNSpace::ReLU()          );
+			if (args["--activator"]->string() == "TanH")            network.setActivator(new NNSpace::TanH()          );
+		} else if (args["--activator"]->is_integer()) {
+			if (args["--activator"]->integer() == NNSpace::ActivatorType::LINEAR)          network.setActivator(new NNSpace::Linear()        );
+			if (args["--activator"]->integer() == NNSpace::ActivatorType::SIGMOID)         network.setActivator(new NNSpace::Sigmoid()       );
+			if (args["--activator"]->integer() == NNSpace::ActivatorType::BIPOLAR_SIGMOID) network.setActivator(new NNSpace::BipolarSigmoid());
+			if (args["--activator"]->integer() == NNSpace::ActivatorType::RELU)            network.setActivator(new NNSpace::ReLU()          );
+			if (args["--activator"]->integer() == NNSpace::ActivatorType::TANH)            network.setActivator(new NNSpace::TanH()          );
+		} else if (args["--activator"]->is_array()) {
+			for (int i = 0; i < args["--activator"]->array().size(); ++i) {
+				if (args["--activator"]->array()[i]->is_string()) {
+					if (args["--activator"]->array()[i]->string() == "LINEAR")          network.setActivator(new NNSpace::Linear()        );
+					if (args["--activator"]->array()[i]->string() == "SIGMOID")         network.setActivator(new NNSpace::Sigmoid()       );
+					if (args["--activator"]->array()[i]->string() == "BIPOLAR_SIGMOID") network.setActivator(new NNSpace::BipolarSigmoid());
+					if (args["--activator"]->array()[i]->string() == "ReLU")            network.setActivator(new NNSpace::ReLU()          );
+					if (args["--activator"]->array()[i]->string() == "TanH")            network.setActivator(new NNSpace::TanH()          );
+				} else if (args["--activator"]->array()[i]->is_integer()) {
+					if (args["--activator"]->array()[i]->integer() == NNSpace::ActivatorType::LINEAR)          network.setActivator(new NNSpace::Linear()        );
+					if (args["--activator"]->array()[i]->integer() == NNSpace::ActivatorType::SIGMOID)         network.setActivator(new NNSpace::Sigmoid()       );
+					if (args["--activator"]->array()[i]->integer() == NNSpace::ActivatorType::BIPOLAR_SIGMOID) network.setActivator(new NNSpace::BipolarSigmoid());
+					if (args["--activator"]->array()[i]->integer() == NNSpace::ActivatorType::RELU)            network.setActivator(new NNSpace::ReLU()          );
+					if (args["--activator"]->array()[i]->integer() == NNSpace::ActivatorType::TANH)            network.setActivator(new NNSpace::TanH()          );
+				}
+			}
+		}
+	}
 	
 	// Perform testing
 	auto start_time = std::chrono::high_resolution_clock::now();
