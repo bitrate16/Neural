@@ -1,9 +1,9 @@
+#include <iostream>
 #include <cstdlib>
 #include <vector>
 #include <chrono>
 #include <limits>
 
-#include "train/backpropagation.h"
 #include "NetTestCommon.h"
 #include "pargs.h"
 
@@ -143,7 +143,7 @@ int main(int argc, const char** argv) {
 		step[i].resize(dimensions[i]);
 		for (int j = 0; j < dimensions[i + 1]; ++j) {
 			positive_probability[i][j].resize(dimensions[i + 1], 0.5);
-			step[i][j].resize(dimensions[i + 1], 0.5);
+			step[i][j].resize(dimensions[i + 1], Wd / 2.0);
 		}
 	}
 	
