@@ -21,6 +21,9 @@
  *  --output=%       Output file for the network
  *  --error=%        L1 or L2
  *  --log=[%]        Log type (TRAIN_TIME, TRAIN_OPERATIONS, TRAIN_ITERATIONS, TEST_ERROR)
+ *
+ * Make:
+ * g++ src/train_test/backpropagation/approx_2d.cpp -o bin/backpropagation_approx_2d -O0 --std=c++11 -Iinclude -lstdc++fs
  */
 
 // Simply prints out the message and exits.
@@ -41,10 +44,10 @@ int main(int argc, const char** argv) {
 		dimensions.resize(args["--layers"]->array().size() + 2);
 		
 		for (int i = 0; i < args["--layers"]->array().size(); ++i) {
+			dimensions[i] = args["--layers"]->array()[i]->integer();
+			
 			if (!dimensions[i])
 				exit_message("Zero layer size");
-			
-			dimensions[i] = args["--layers"]->array()[i];
 		}
 	}
 	
@@ -53,10 +56,10 @@ int main(int argc, const char** argv) {
 	double wD = args["--weight"] && args["--weight"]->is_real() ? args["--weight"]->real() : 1.0;
 	
 	// Read offsets flag
-	bool offsets = args["--offsets"] && args["--offsets"].get_boolean();
+	bool offsets = args["--offsets"] && args["--offsets"]->get_boolean();
 	
 	// Read Ltype
-	int Ltype = args["--error"] ? args["--error"].get_integer() : 1;
+	int Ltype = args["--error"] ? args["--error"]->get_integer() : 1;
 	if (Ltype != 1 && Ltype != 2)
 		Ltype = 1;
 	
@@ -75,7 +78,7 @@ int main(int argc, const char** argv) {
 	
 	// Generate network
 	NNSpace::MLNet network;
-	NLSpace::Common::generate_random_network(network, dimensions, wD, offsets);
+	NNSpace::Common::generate_random_network(network, dimensions, wD, offsets);
 	
 	// Perform testing
 	auto start_time = std::chrono::high_resolution_clock::now();
@@ -98,7 +101,7 @@ int main(int argc, const char** argv) {
 		if (args["--log"]->array_contains("TRAIN_TIME")) {
 			
 			// Calculate time used
-			auto train_time = std::chrono::duration_cast<std::chrono::milliseconds>(timestamp_start - timestamp_end).count();
+			auto train_time = std::chrono::duration_cast<std::chrono::milliseconds>(start_time - end_time).count();
 			std::cout << train_time << std::endl;
 		}
 		if (args["--log"]->array_contains("TRAIN_ITERATIONS"))
@@ -110,6 +113,10 @@ int main(int argc, const char** argv) {
 			std::cout << error << std::endl;
 		}
 	}
+	
+	// Write network to file
+	if (args["--output"] && args["--output"]->is_string())
+		NNSpace::Common::write_network(network, args["--output"]->string());
 	
 	return 0;
 };

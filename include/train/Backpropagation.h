@@ -19,11 +19,11 @@ namespace NNSpace {
 		// input        - input data to train on
 		// output_teach - desired output result
 		// rate         - teach rate value
-		void train(NNSpace::MultiLayerNetwork& net, const std::vector<double>& input, const std::vector<double>& output_teach, double rate) {
+		void train(NNSpace::MLNet& net, const std::vector<double>& input, const std::vector<double>& output_teach, double rate) {
 			std::vector<std::vector<double>> layers(net.dimensions.size()); // [0-N]
 			layers[0] = input;
 			
-			std::vector<std::vector<double>> layers_raw(net.dimenstions.size() - 1); // [1-N]
+			std::vector<std::vector<double>> layers_raw(net.dimensions.size() - 1); // [1-N]
 			
 			// Regular process
 			for (int k = 0; k < net.dimensions.size() - 1; ++k) {
@@ -38,7 +38,7 @@ namespace NNSpace {
 						layers_raw[k][j] += layers[k][i] * net.W[k][i][j];
 					
 					// Normalize
-					net.layers[k + 1][j] = net.activators[k]->process(layers_raw[k][j]);
+					layers[k + 1][j] = net.activators[k]->process(layers_raw[k][j]);
 				}
 			}
 			
@@ -106,12 +106,12 @@ namespace NNSpace {
 		// Ltype        - type of error calculation:
 		//  1 - L1
 		//  2 - L2
-		double train_error(NNSpace::MultiLayerNetwork& net, int Ltype, const std::vector<double>& input, const std::vector<double>& output_teach, double rate) {
+		double train_error(NNSpace::MLNet& net, int Ltype, const std::vector<double>& input, const std::vector<double>& output_teach, double rate) {
 			double out_error_value = 0.0;
 			std::vector<std::vector<double>> layers(net.dimensions.size()); // [0-N]
 			layers[0] = input;
 			
-			std::vector<std::vector<double>> layers_raw(net.dimenstions.size() - 1); // [1-N]
+			std::vector<std::vector<double>> layers_raw(net.dimensions.size() - 1); // [1-N]
 			
 			// Regular process
 			for (int k = 0; k < net.dimensions.size() - 1; ++k) {
@@ -126,7 +126,7 @@ namespace NNSpace {
 						layers_raw[k][j] += layers[k][i] * net.W[k][i][j];
 					
 					// Normalize
-					net.layers[k + 1][j] = net.activators[k]->process(layers_raw[k][j]);
+					layers[k + 1][j] = net.activators[k]->process(layers_raw[k][j]);
 				}
 			}
 			
@@ -152,7 +152,7 @@ namespace NNSpace {
 			// Calculate sigmas
 			for (int i = 0; i < net.dimensions.back(); ++i) { // K-2, K-1
 				double dv = output_teach[i] - layers.back()[i];
-				sigma.back()[i] = dv * activators.back()->derivative(layers_raw.back()[i]);
+				sigma.back()[i] = dv * net.activators.back()->derivative(layers_raw.back()[i]);
 				
 				if (Ltype == 2)
 					out_error_value += dv * dv;
@@ -192,9 +192,9 @@ namespace NNSpace {
 				
 				
 			if (Ltype == 2)
-				return std::sqrt(out_error_value / (double) dimensions.back());
+				return std::sqrt(out_error_value / (double) net.dimensions.back());
 			else if (Ltype == 1)
-				return out_error_value / (double) dimensions.back();
+				return out_error_value / (double) net.dimensions.back();
 		};
 	
 		
@@ -206,7 +206,7 @@ namespace NNSpace {
 		// input        - input data to train on
 		// output_teach - desired output result
 		// rate         - teach rate value
-		void train(NNSpace::SingleLayerNetwork& net, const std::vector<double>& input, const std::vector<double>& output_teach, double rate) {
+		void train(NNSpace::SLNet& net, const std::vector<double>& input, const std::vector<double>& output_teach, double rate) {
 			std::vector<double> middle_raw(net.dimensions.middle);
 			std::vector<double> middle(net.dimensions.middle);
 			std::vector<double> output_raw(net.dimensions.output);
@@ -293,7 +293,7 @@ namespace NNSpace {
 			for (int i = 0; i < net.dimensions.middle; ++i)
 				net.middle_offset[i] += dm_offset[i];
 			
-			for (int i = 0; i < dimensions.output; ++i)
+			for (int i = 0; i < net.dimensions.output; ++i)
 				net.output_offset[i] += do_offset[i];
 		};
 	
@@ -305,7 +305,7 @@ namespace NNSpace {
 		// Ltype        - type of error calculation:
 		//  1 - L1
 		//  2 - L2
-		double train_error(NNSpace::SingleLayerNetwork& net, int Ltype, const std::vector<double>& input, const std::vector<double>& output_teach, double rate) {
+		double train_error(NNSpace::SLNet& net, int Ltype, const std::vector<double>& input, const std::vector<double>& output_teach, double rate) {
 			double out_error_value = 0.0;
 			std::vector<double> middle_raw(net.dimensions.middle);
 			std::vector<double> middle(net.dimensions.middle);
@@ -399,14 +399,14 @@ namespace NNSpace {
 			for (int i = 0; i < net.dimensions.middle; ++i)
 				net.middle_offset[i] += dm_offset[i];
 			
-			for (int i = 0; i < dimensions.output; ++i)
+			for (int i = 0; i < net.dimensions.output; ++i)
 				net.output_offset[i] += do_offset[i];
 			
 			
 			if (Ltype == 2)
-				return std::sqrt(out_error_value / (double) dimensions.output);
+				return std::sqrt(out_error_value / (double) net.dimensions.output);
 			else if (Ltype == 1)
-				return out_error_value / (double) dimensions.output;
+				return out_error_value / (double) net.dimensions.output;
 		};
 	};
 };

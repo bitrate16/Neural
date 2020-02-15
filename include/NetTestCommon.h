@@ -2,6 +2,7 @@
 
 #include <experimental/filesystem>
 #include <functional>
+#include <algorithm>
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
@@ -73,8 +74,6 @@ namespace NNSpace {
 				for (int i = 0; i < amount; ++i)
 					points[i] = std::pair<double, double>(((double) i) * step, function(((double) i) * step));
 			}
-			
-			return points;
 		};
 		
 		
@@ -109,8 +108,6 @@ namespace NNSpace {
 				
 				points[i].second = function(points[i].first);
 			}
-			
-			return points;
 		};
 		
 		// Write given set to the file
@@ -162,12 +159,12 @@ namespace NNSpace {
 			
 			is >> count >> x_size;
 			if (is.fail()) {
-				os.close();
+				is.close();
 				return 0;
 			}
 			
 			set.resize(count);
-			for (int i = 0; i < amount; ++i) {
+			for (int i = 0; i < count; ++i) {
 				set[i].first.resize(x_size);
 				
 				for (int k = 0; k < x_size; ++k)
@@ -228,12 +225,12 @@ namespace NNSpace {
 				return 0;
 			
 			if (is.fail()) {
-				os.close();
+				is.close();
 				return 0;
 			}
 			
 			set.resize(count);
-			for (int i = 0; i < amount; ++i) 
+			for (int i = 0; i < count; ++i) 
 				is >> set[i].first >> set[i].second;
 			
 			return 1;
@@ -260,11 +257,9 @@ namespace NNSpace {
 			
 			int set_ind = 0;
 			for (int i = 0; i < set_count; ++i) {
-				sets[i] = std::vector<std::pair<double, double>>(set.begin() + set_ind, set_begin() + set_ind + subset_size);
+				sets[i] = std::vector<std::pair<double, double>>(set.begin() + set_ind, set.begin() + set_ind + subset_size);
 				set_ind += subset_size;
 			}
-			
-			return sets;
 		};
 	
 		// Split Approx set
@@ -274,15 +269,13 @@ namespace NNSpace {
 			
 			int set_ind = 0;
 			for (int i = 0; i < set_count; ++i) {
-				sets[i] = std::vector<std::pair<std::vector<double>, double>>(set.begin() + set_ind, set_begin() + set_ind + subset_size);
+				sets[i] = std::vector<std::pair<std::vector<double>, double>>(set.begin() + set_ind, set.begin() + set_ind + subset_size);
 				set_ind += subset_size;
 			}
-			
-			return sets;
 		};
 		
 		// Split Approx set 2^i
-		void split_approx_set_2i(std::vector<std::vector<std::pair<double, double>>>& sets, std::vector<std::pair<double, double>>& set, int subset_size) {
+		void split_approx_set_2i(std::vector<std::vector<std::pair<double, double>>>& sets, std::vector<std::pair<double, double>>& set) {
 			int count = 0;
 			unsigned int size = set.size();
 			while (size) {
@@ -290,21 +283,19 @@ namespace NNSpace {
 				size >>= 1;
 			}
 			
-			sets.resize(set_count);
+			sets.resize(count);
 			
 			int a = 0;
 			int b = 1;
 			for (int i = 0; i < count; ++i) {
-				sets[i] = std::vector<std::pair<double, double>>(set.begin() + a, set_begin() + b);
+				sets[i] = std::vector<std::pair<double, double>>(set.begin() + a, set.begin() + b);
 				a = b;
 				b <<= 1;
 			}
-			
-			return sets;
 		};
 	
 		// Split Approx set 2^i
-		void split_approx_set_2i(std::vector<std::vector<std::pair<std::vector<double>, double>>>& sets, std::vector<std::pair<std::vector<double>, double>>& set, int subset_size) {
+		void split_approx_set_2i(std::vector<std::vector<std::pair<std::vector<double>, double>>>& sets, std::vector<std::pair<std::vector<double>, double>>& set) {
 			int count = 0;
 			unsigned int size = set.size();
 			while (size) {
@@ -312,17 +303,15 @@ namespace NNSpace {
 				size >>= 1;
 			}
 			
-			sets.resize(set_count);
+			sets.resize(count);
 			
 			int a = 0;
 			int b = 1;
 			for (int i = 0; i < count; ++i) {
-				sets[i] = std::vector<std::pair<std::vector<double>, double>>(set.begin() + a, set_begin() + b);
+				sets[i] = std::vector<std::pair<std::vector<double>, double>>(set.begin() + a, set.begin() + b);
 				a = b;
 				b <<= 1;
 			}
-			
-			return sets;
 		};
 				
 		
@@ -338,8 +327,6 @@ namespace NNSpace {
 				net[i].randomize(dispersion);
 				net[i].setEnableOffsets(enable_offsets);
 			}
-				
-			return net;
 		};
 		
 		// Generate random network
@@ -347,8 +334,6 @@ namespace NNSpace {
 			net.set(dimensions);
 			net.randomize(dispersion);
 			net.setEnableOffsets(enable_offsets);
-				
-			return net;
 		};
 		
 		// Removes all networks in the specified directory
@@ -421,11 +406,42 @@ namespace NNSpace {
 		};
 		
 		// Read single ordered network
-		bool write_network(NNSpace::MLNet& net, std::string& in_dir, int i) {
+		bool read_network(NNSpace::MLNet& net, std::string& in_dir, int i) {
 			std::ifstream is;
 			std::string filename = in_dir + "/network_" + std::to_string(i) + ".neetwook";
 			
 			is.open(filename);
+			if (is.fail()) 
+				return 0;
+			
+			net.deserialize(is);
+			
+			is.close();
+			
+			return 1;
+		};
+	
+		// Write single network
+		bool write_network(NNSpace::MLNet& net, std::string& out_file) {
+			std::ofstream of;
+			of.open(out_file);
+			
+			if (of.fail()) 
+				return 0;
+			
+			net.serialize(of);
+			
+			of.flush();
+			of.close();
+			
+			return 1;
+		};
+		
+		// Read single network
+		bool read_network(NNSpace::MLNet& net, std::string& in_file) {
+			std::ifstream is;
+			is.open(in_file);
+			
 			if (is.fail()) 
 				return 0;
 			
@@ -453,9 +469,9 @@ namespace NNSpace {
 			
 			for (int i = 0; i < set.size(); ++i) {
 				input[0] = set[i].first;
-				output   = network.run(input);
+				output   = net.run(input);
 				
-				long double dv = set[i].y - output[0];
+				long double dv = set[i].second - output[0];
 				if (Ltype == 1)
 					error += std::fabs(dv);
 				if (Ltype == 2)
@@ -465,7 +481,7 @@ namespace NNSpace {
 			if (Ltype == 1)
 				return error / (double) set.size();
 			if (Ltype == 2)
-				return math::sqrt(error / (double) set.size());
+				return std::sqrt(error / (double) set.size());
 		};
 		
 		
@@ -480,9 +496,9 @@ namespace NNSpace {
 			long double error = 0;
 			
 			for (int i = 0; i < set.size(); ++i) {
-				output   = network.run(set[i].first);
+				output   = net.run(set[i].first);
 				
-				long double dv = set[i].y - output[0];
+				long double dv = set[i].second - output[0];
 				if (Ltype == 1)
 					error += std::fabs(dv);
 				if (Ltype == 2)
@@ -492,7 +508,7 @@ namespace NNSpace {
 			if (Ltype == 1)
 				return error / (double) set.size();
 			if (Ltype == 2)
-				return math::sqrt(error / (double) set.size());
+				return std::sqrt(error / (double) set.size());
 		};
 	};
 };
