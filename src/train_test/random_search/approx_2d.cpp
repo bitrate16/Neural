@@ -144,7 +144,7 @@ int main(int argc, const char** argv) {
 		step[i].resize(dimensions[i]);
 		for (int j = 0; j < dimensions[i]; ++j) {
 			positive_probability[i][j].resize(dimensions[i + 1], 0.5);
-			step[i][j].resize(dimensions[i + 1], wD / 2.0);
+			step[i][j].resize(dimensions[i + 1], wD / 4.0);
 		}
 	}
 	
@@ -153,13 +153,13 @@ int main(int argc, const char** argv) {
 	if (offsets)
 		for (int i = 0; i < dimensions.size() - 1; ++i) {
 			positive_offset_probability[i].resize(dimensions[i + 1], 0.5);
-			offset_step[i].resize(dimensions[i + 1], 0.5);
+			offset_step[i].resize(dimensions[i + 1], 0.25);
 		}
 	
 	// Error value before step
 	double error_a = 0.5;
 	// Errro value after step
-	double error_b = 0.5;
+	double error_b = NNSpace::Common::calculate_approx_error(network, train_set, Ltype);
 	// Error change speed
 	double error_d = 0.0;
 	
@@ -257,7 +257,7 @@ int main(int argc, const char** argv) {
 		if (args["--log"]->array_contains("TRAIN_ITERATIONS"))
 			std::cout << "TRAIN_ITERATIONS=" << train_iterations << std::endl;
 		if (args["--log"]->array_contains("TEST_ERROR_AVG"))
-			std::cout << "TEST_ERROR=" << error_b << std::endl;
+			std::cout << "TEST_ERROR_AVG=" << NNSpace::Common::calculate_approx_error(network, test_set, Ltype) << std::endl;
 		if (args["--log"]->array_contains("TEST_ERROR_MAX")) 
 			std::cout << "TEST_ERROR_MAX=" << NNSpace::Common::calculate_approx_error_max(network, test_set) << std::endl;
 	}

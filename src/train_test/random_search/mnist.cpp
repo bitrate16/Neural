@@ -32,9 +32,7 @@
  * g++ src/train_test/random_search/mnist.cpp -o bin/random_search_mnist -O3 --std=c++17 -Iinclude -lstdc++fs
  *
  * Example:
- * ./bin/random_search_mnist --steps=16 --layers=[3] --offsets=true --activator=Sigmoid --weight=1.0 --train_size=10000 --test_size=100 --mnist=data/mnist --output=networks/mnist_test.neetwook --log=[TRAIN_TIME,TEST_ERROR_AVG,TEST_ERROR_MAX,TRAIN_ITERATIONS,TEST_MATCH]
- *
- * ./bin/random_search_mnist --steps=16 --layers=[5] --offsets=true --activator=TanH --weight=10.0 --train=data/sin_1000.mset --test=data/sin_100.mset --output=networks/mnist_test.neetwook --log=[TRAIN_TIME,TEST_ERROR_AVG,TEST_ERROR_MAX,TRAIN_ITERATIONS,TEST_MATCH]
+ * ./bin/random_search_mnist --steps=16 --layers=[] --offsets=true --activator=Sigmoid --weight=1.0 --train_size=10000 --test_size=100 --mnist=data/mnist --output=networks/mnist_test.neetwook --log=[TRAIN_TIME,TEST_ERROR_AVG,TEST_ERROR_MAX,TRAIN_ITERATIONS,TEST_MATCH]
  */
 
 // Simply prints out the message and exits.
@@ -53,7 +51,7 @@ int main(int argc, const char** argv) {
 	pargs::pargs args(argc, argv);
 	
 	// Read input data for network definition
-	std::vector<int> dimensions = { 1, 1 };
+	std::vector<int> dimensions = { 28 * 28, 10 };
 	
 	// Fill with layer dimensions
 	if (args["--layers"] && args["--layers"]->is_array()) {
@@ -156,7 +154,7 @@ int main(int argc, const char** argv) {
 		step[i].resize(dimensions[i]);
 		for (int j = 0; j < dimensions[i]; ++j) {
 			positive_probability[i][j].resize(dimensions[i + 1], 0.5);
-			step[i][j].resize(dimensions[i + 1], wD / 2.0);
+			step[i][j].resize(dimensions[i + 1], wD / 4.0);
 		}
 	}
 	
@@ -165,13 +163,13 @@ int main(int argc, const char** argv) {
 	if (offsets)
 		for (int i = 0; i < dimensions.size() - 1; ++i) {
 			positive_offset_probability[i].resize(dimensions[i + 1], 0.5);
-			offset_step[i].resize(dimensions[i + 1], 0.5);
+			offset_step[i].resize(dimensions[i + 1], 0.25);
 		}
 	
 	// Error value before step
 	double error_a = 0.5;
 	// Errro value after step
-	double error_b = 0.5;
+	double error_b = NNSpace::Common::calculate_mnist_error(network, set, Ltype, train_offset, test_size);
 	// Error change speed
 	double error_d = 0.0;
 	
@@ -250,13 +248,14 @@ int main(int argc, const char** argv) {
 				}
 		
 		// Calculate error value after step (teach_set)
-		error_b = NNSpace::Common::calculate_approx_error(network, train_set, Ltype);
+		error_b = NNSpace::Common::calculate_mnist_error(network, set, Ltype, train_offset, test_size);
 		
 		// Calculate error change speed
 		error_d = error_b - error_a;
 	}
 	
 	auto end_time = std::chrono::high_resolution_clock::now();
+		NNSpace::Common::read_network(network, args["--output"]->string());
 	
 	// Do logging of the requested values
 	if (args["--log"]) {
@@ -269,9 +268,9 @@ int main(int argc, const char** argv) {
 		if (args["--log"]->array_contains("TRAIN_ITERATIONS"))
 			std::cout << "TRAIN_ITERATIONS=" << train_iterations << std::endl;
 		if (args["--log"]->array_contains("TEST_MATCH")) 
-			std::cout << "TEST_ERROR_AVG=" << NNSpace::Common::calculate_mnist_match(network, set, test_offset, test_size) << std::endl;
+			std::cout << "TEST_MATCH=" << NNSpace::Common::calculate_mnist_match(network, set, test_offset, test_size) << std::endl;
 		if (args["--log"]->array_contains("TEST_ERROR_AVG"))
-			std::cout << "TEST_ERROR=" << error_b << std::endl;
+			std::cout << "TEST_ERROR_AVG=" << NNSpace::Common::calculate_mnist_error(network, set, Ltype, test_offset, test_size) << std::endl;
 		if (args["--log"]->array_contains("TEST_ERROR_MAX")) 
 			std::cout << "TEST_ERROR_MAX=" << NNSpace::Common::calculate_mnist_error_max(network, set, Ltype, test_offset, test_size) << std::endl;
 	}

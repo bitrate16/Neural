@@ -259,9 +259,9 @@ int main(int argc, const char** argv) {
 		if (args["--log"]->array_contains("TRAIN_ITERATIONS"))
 			std::cout << "TRAIN_ITERATIONS=" << train_iterations << std::endl;
 		if (args["--log"]->array_contains("TEST_MATCH")) 
-			std::cout << "TEST_ERROR_AVG=" << NNSpace::Common::calculate_mnist_match(networks[0], set, test_offset, test_size) << std::endl;
+			std::cout << "TEST_MATCH=" << NNSpace::Common::calculate_mnist_match(networks[0], set, test_offset, test_size) << std::endl;
 		if (args["--log"]->array_contains("TEST_ERROR_AVG"))
-			std::cout << "TEST_MATCH=" << errors_b[0] << std::endl;
+			std::cout << "TEST_ERROR_AVG=" << errors_b[0] << std::endl;
 		if (args["--log"]->array_contains("TEST_ERROR_MAX")) 
 			std::cout << "TEST_ERROR_MAX=" << NNSpace::Common::calculate_mnist_error_max(networks[0], set, Ltype, test_offset, test_size) << std::endl;
 	}
