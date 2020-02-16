@@ -1,3 +1,7 @@
+/*
+ * (c) Copyright bitrate16 (GPLv3.0) 2020
+ */
+
 #pragma once
 
 #include "Network.h"

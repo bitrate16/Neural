@@ -1,10 +1,10 @@
-#include "train/backpropagation.h"
 #include "math_func_util.h"
 #include "NetTestCommon.h"
 #include "math_func.h"
 #include "pargs.h"
 
 /*
+ * (c) Copyright bitrate16 (GPLv3.0) 2020
  * Generates testing set for 2D approximation
  * Agruments:
  *  --function="%"   Approximation function formula
@@ -15,7 +15,7 @@
  *  --random=%       Use random instead of linear
  *
  * Make:
- * g++ src/train_test/gen_set_2d.cpp -o bin/gen_set_2d -O3 --std=c++11 -Iinclude -lstdc++fs
+ * g++ src/train_test/gen_set_2d.cpp -o bin/gen_set_2d -O3 --std=c++17 -Iinclude -lstdc++fs
  *
  * Example:
  * ./bin/gen_set_2d --function="sin(t*3.14*2.0)*0.5+0.5" --count=1000 --output=data/sin_1000.mset --random=true

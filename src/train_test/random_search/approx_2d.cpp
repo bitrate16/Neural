@@ -8,6 +8,7 @@
 #include "pargs.h"
 
 /*
+ * (c) Copyright bitrate16 (GPLv3.0) 2020
  * Performs simpla testing of passed amount of networks with passed aguments.
  * For passed networks count, calculates Af as log2(amount).
  *  Passed set is being split into Af subsets (S[i]) and training being performed:
@@ -28,10 +29,10 @@
  *  --log=[%]        Log type (TRAIN_TIME, TRAIN_OPERATIONS, TRAIN_ITERATIONS, TEST_ERROR)
  *
  * Make:
- * g++ src/train_test/multistart/approx_2d.cpp -o bin/multistart_approx_2d -O3 --std=c++11 -Iinclude -lstdc++fs
+ * g++ src/train_test/random_search/approx_2d.cpp -o bin/random_search_approx_2d -O3 --std=c++17 -Iinclude -lstdc++fs
  *
  * Example:
- * ./bin/multistart_approx_2d --networks=16 --layers=[3] --activator=TanH --weight=1.0 --train=data/sin_1000.mset --test=data/sin_100.mset --output=networks/approx_sin.neetwook --log=[TRAIN_TIME,TEST_ERROR,TRAIN_ITERATIONS]
+ * ./bin/random_search_approx_2d --steps=16 --layers=[3] --activator=TanH --weight=1.0 --train=data/sin_1000.mset --test=data/sin_100.mset --output=networks/approx_sin.neetwook --log=[TRAIN_TIME,TEST_ERROR,TRAIN_ITERATIONS]
  */
 
 // Simply prints out the message and exits.
@@ -98,34 +99,32 @@ int main(int argc, const char** argv) {
 	
 	// Add activators (default is linear)
 	if (args["--activator"]) {
-		for (int i = 0; i < networks.size(); ++i) {
-			if (args["--activator"]->is_string()) {
-				if (args["--activator"]->string() == "LINEAR")          networks[i].setActivator(new NNSpace::Linear()        );
-				if (args["--activator"]->string() == "SIGMOID")         networks[i].setActivator(new NNSpace::Sigmoid()       );
-				if (args["--activator"]->string() == "BIPOLAR_SIGMOID") networks[i].setActivator(new NNSpace::BipolarSigmoid());
-				if (args["--activator"]->string() == "ReLU")            networks[i].setActivator(new NNSpace::ReLU()          );
-				if (args["--activator"]->string() == "TanH")            networks[i].setActivator(new NNSpace::TanH()          );
-			} else if (args["--activator"]->is_integer()) {
-				if (args["--activator"]->integer() == NNSpace::ActivatorType::LINEAR)          networks[i].setActivator(new NNSpace::Linear()        );
-				if (args["--activator"]->integer() == NNSpace::ActivatorType::SIGMOID)         networks[i].setActivator(new NNSpace::Sigmoid()       );
-				if (args["--activator"]->integer() == NNSpace::ActivatorType::BIPOLAR_SIGMOID) networks[i].setActivator(new NNSpace::BipolarSigmoid());
-				if (args["--activator"]->integer() == NNSpace::ActivatorType::RELU)            networks[i].setActivator(new NNSpace::ReLU()          );
-				if (args["--activator"]->integer() == NNSpace::ActivatorType::TANH)            networks[i].setActivator(new NNSpace::TanH()          );
-			} else if (args["--activator"]->is_array()) {
-				for (int i = 0; i < args["--activator"]->array().size(); ++i) {
-					if (args["--activator"]->array()[i]->is_string()) {
-						if (args["--activator"]->array()[i]->string() == "LINEAR")          networks[i].setActivator(new NNSpace::Linear()        );
-						if (args["--activator"]->array()[i]->string() == "SIGMOID")         networks[i].setActivator(new NNSpace::Sigmoid()       );
-						if (args["--activator"]->array()[i]->string() == "BIPOLAR_SIGMOID") networks[i].setActivator(new NNSpace::BipolarSigmoid());
-						if (args["--activator"]->array()[i]->string() == "ReLU")            networks[i].setActivator(new NNSpace::ReLU()          );
-						if (args["--activator"]->array()[i]->string() == "TanH")            networks[i].setActivator(new NNSpace::TanH()          );
-					} else if (args["--activator"]->array()[i]->is_integer()) {
-						if (args["--activator"]->array()[i]->integer() == NNSpace::ActivatorType::LINEAR)          networks[i].setActivator(new NNSpace::Linear()        );
-						if (args["--activator"]->array()[i]->integer() == NNSpace::ActivatorType::SIGMOID)         networks[i].setActivator(new NNSpace::Sigmoid()       );
-						if (args["--activator"]->array()[i]->integer() == NNSpace::ActivatorType::BIPOLAR_SIGMOID) networks[i].setActivator(new NNSpace::BipolarSigmoid());
-						if (args["--activator"]->array()[i]->integer() == NNSpace::ActivatorType::RELU)            networks[i].setActivator(new NNSpace::ReLU()          );
-						if (args["--activator"]->array()[i]->integer() == NNSpace::ActivatorType::TANH)            networks[i].setActivator(new NNSpace::TanH()          );
-					}
+		if (args["--activator"]->is_string()) {
+			if (args["--activator"]->string() == "LINEAR")          network.setActivator(new NNSpace::Linear()        );
+			if (args["--activator"]->string() == "SIGMOID")         network.setActivator(new NNSpace::Sigmoid()       );
+			if (args["--activator"]->string() == "BIPOLAR_SIGMOID") network.setActivator(new NNSpace::BipolarSigmoid());
+			if (args["--activator"]->string() == "ReLU")            network.setActivator(new NNSpace::ReLU()          );
+			if (args["--activator"]->string() == "TanH")            network.setActivator(new NNSpace::TanH()          );
+		} else if (args["--activator"]->is_integer()) {
+			if (args["--activator"]->integer() == NNSpace::ActivatorType::LINEAR)          network.setActivator(new NNSpace::Linear()        );
+			if (args["--activator"]->integer() == NNSpace::ActivatorType::SIGMOID)         network.setActivator(new NNSpace::Sigmoid()       );
+			if (args["--activator"]->integer() == NNSpace::ActivatorType::BIPOLAR_SIGMOID) network.setActivator(new NNSpace::BipolarSigmoid());
+			if (args["--activator"]->integer() == NNSpace::ActivatorType::RELU)            network.setActivator(new NNSpace::ReLU()          );
+			if (args["--activator"]->integer() == NNSpace::ActivatorType::TANH)            network.setActivator(new NNSpace::TanH()          );
+		} else if (args["--activator"]->is_array()) {
+			for (int i = 0; i < args["--activator"]->array().size(); ++i) {
+				if (args["--activator"]->array()[i]->is_string()) {
+					if (args["--activator"]->array()[i]->string() == "LINEAR")          network.setActivator(new NNSpace::Linear()        );
+					if (args["--activator"]->array()[i]->string() == "SIGMOID")         network.setActivator(new NNSpace::Sigmoid()       );
+					if (args["--activator"]->array()[i]->string() == "BIPOLAR_SIGMOID") network.setActivator(new NNSpace::BipolarSigmoid());
+					if (args["--activator"]->array()[i]->string() == "ReLU")            network.setActivator(new NNSpace::ReLU()          );
+					if (args["--activator"]->array()[i]->string() == "TanH")            network.setActivator(new NNSpace::TanH()          );
+				} else if (args["--activator"]->array()[i]->is_integer()) {
+					if (args["--activator"]->array()[i]->integer() == NNSpace::ActivatorType::LINEAR)          network.setActivator(new NNSpace::Linear()        );
+					if (args["--activator"]->array()[i]->integer() == NNSpace::ActivatorType::SIGMOID)         network.setActivator(new NNSpace::Sigmoid()       );
+					if (args["--activator"]->array()[i]->integer() == NNSpace::ActivatorType::BIPOLAR_SIGMOID) network.setActivator(new NNSpace::BipolarSigmoid());
+					if (args["--activator"]->array()[i]->integer() == NNSpace::ActivatorType::RELU)            network.setActivator(new NNSpace::ReLU()          );
+					if (args["--activator"]->array()[i]->integer() == NNSpace::ActivatorType::TANH)            network.setActivator(new NNSpace::TanH()          );
 				}
 			}
 		}
@@ -136,14 +135,14 @@ int main(int argc, const char** argv) {
 	unsigned long train_iterations = 0;
 	
 	// Initialize positive step probability & step value
-	std::vector<std::vector<std::vector<double>>> positive_probability(dimensions.size());
-	std::vector<std::vector<std::vector<double>>> step(dimensions.size());
+	std::vector<std::vector<std::vector<double>>> positive_probability(dimensions.size() - 1);
+	std::vector<std::vector<std::vector<double>>> step(dimensions.size() - 1);
 	for (int i = 0; i < dimensions.size() - 1; ++i) {
 		positive_probability[i].resize(dimensions[i]);
 		step[i].resize(dimensions[i]);
-		for (int j = 0; j < dimensions[i + 1]; ++j) {
+		for (int j = 0; j < dimensions[i]; ++j) {
 			positive_probability[i][j].resize(dimensions[i + 1], 0.5);
-			step[i][j].resize(dimensions[i + 1], Wd / 2.0);
+			step[i][j].resize(dimensions[i + 1], wD / 2.0);
 		}
 	}
 	
@@ -156,6 +155,7 @@ int main(int argc, const char** argv) {
 	
 	// For each step perform weight correction depending on selected direction
 	for (int s = 0; s < steps; ++s) {
+		++train_iterations;
 		error_a = error_b;
 		
 		// Perform correction depending on probability
@@ -194,7 +194,7 @@ int main(int argc, const char** argv) {
 					}
 					
 					// Generate random direction & step on it
-					if (probably_true(positive_probability[i][j]))
+					if (probably_true(positive_probability[d][i][j]))
 						network.W[d][i][j] += step[d][i][j];
 					else
 						network.W[d][i][j] -= step[d][i][j];
@@ -205,6 +205,8 @@ int main(int argc, const char** argv) {
 		
 		// Calculate error change speed
 		error_d = error_b - error_a;
+		
+		std::cout << "error = " << error_b << ", speed = " << error_d << std::endl;
 	}
 	
 	auto end_time = std::chrono::high_resolution_clock::now();
@@ -225,7 +227,7 @@ int main(int argc, const char** argv) {
 	
 	// Write network to file
 	if (args["--output"] && args["--output"]->is_string())
-		NNSpace::Common::write_network(networks[0], args["--output"]->string());
+		NNSpace::Common::write_network(network, args["--output"]->string());
 	
 	return 0;
 };

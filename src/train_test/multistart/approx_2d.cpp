@@ -8,6 +8,7 @@
 #include "pargs.h"
 
 /*
+ * (c) Copyright bitrate16 (GPLv3.0) 2020
  * Performs simpla testing of passed amount of networks with passed aguments.
  * For passed networks count, calculates Af as log2(amount).
  *  Passed set is being split into Af subsets (S[i]) and training being performed:
@@ -28,7 +29,7 @@
  *  --log=[%]        Log type (TRAIN_TIME, TRAIN_OPERATIONS, TRAIN_ITERATIONS, TEST_ERROR)
  *
  * Make:
- * g++ src/train_test/multistart/approx_2d.cpp -o bin/multistart_approx_2d -O3 --std=c++11 -Iinclude -lstdc++fs
+ * g++ src/train_test/multistart/approx_2d.cpp -o bin/multistart_approx_2d -O3 --std=c++17 -Iinclude -lstdc++fs
  *
  * Example:
  * ./bin/multistart_approx_2d --networks=16 --layers=[3] --activator=TanH --weight=1.0 --train=data/sin_1000.mset --test=data/sin_100.mset --output=networks/approx_sin.neetwook --log=[TRAIN_TIME,TEST_ERROR,TRAIN_ITERATIONS]

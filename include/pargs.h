@@ -7,6 +7,7 @@
 #include <cstdint>
 
 /* 
+ * (c) Copyright bitrate16 (GPLv3.0) 2020
  * (PARGS) Parse ARGS utility.
  *  - Minimal syntax arguments parsing utility.
  * 

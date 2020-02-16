@@ -7,6 +7,7 @@
 #include "pargs.h"
 
 /*
+ * (c) Copyright bitrate16 (GPLv3.0) 2020
  * Performs simpla testing of passed amount of networks with passed aguments.
  * Arguments:
  *  --layers=[%]     layer sizes
@@ -21,7 +22,7 @@
  *  --log=[%]        Log type (TRAIN_TIME, TRAIN_OPERATIONS, TRAIN_ITERATIONS, TEST_ERROR)
  *
  * Make:
- * g++ src/train_test/backpropagation/approx_2d.cpp -o bin/backpropagation_approx_2d -O3 --std=c++11 -Iinclude -lstdc++fs
+ * g++ src/train_test/backpropagation/approx_2d.cpp -o bin/backpropagation_approx_2d -O3 --std=c++17 -Iinclude -lstdc++fs
  *
  * Example:
  * ./bin/backpropagation_approx_2d --layers=[3] --activator=TanH --weight=1.0 --train=data/sin_1000.mset --test=data/sin_100.mset --output=networks/approx_sin.neetwook --log=[TRAIN_TIME,TEST_ERROR,TRAIN_ITERATIONS]

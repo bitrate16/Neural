@@ -1,3 +1,7 @@
+/*
+ * (c) Copyright bitrate16 (GPLv3.0) 2020
+ */
+
 #pragma once
 
 #include <experimental/filesystem>
@@ -10,6 +14,8 @@
 #include <vector>
 #include <cmath>
 
+#include "SingleLayerNetwork.h"
+#include "MultiLayerNetwork.h"
 #include "mnist/mnist_reader.hpp"
 
 // > Appriximation testing
