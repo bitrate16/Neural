@@ -144,7 +144,7 @@ namespace NNSpace {
 			// 4. size of output layer
 			// 5. middle activator id
 			// 6. output activator id
-			// 7. one by one bias matrices
+			// 7. one by one weight matrices
 			// 8. one by one offsets
 			// 9. enable offsets
 			os << 3;

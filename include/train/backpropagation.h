@@ -78,28 +78,18 @@ namespace NNSpace {
 					
 					sigma[k][i] *= net.activators[k + 0]->derivative(layers_raw[k + 1 - 1][i]); // layers_raw[k + 1]
 				}
-			
+					
 			// Calculate weights correction
-			for (int k = 0; k < net.dimensions.size() - 1; ++k)
-				for (int i = 0; i < net.dimensions[k]; ++i)
-					for (int j = 0; j < net.dimensions[k + 1]; ++j)
-						dW[k][i][j] = rate * sigma[k][j] * layers[k][i];
-					
-			// Calculate offset correction
-			for (int k = 0; k < net.dimensions.size() - 1; ++k)
-				for (int i = 0; i < net.dimensions[k + 1]; ++i)
-					doffset[k][i] = rate * sigma[k][i];
-					
-			// Balance weights
 			for (int k = 0; k < net.dimensions.size() - 1; ++k)
 				for (int i = 0; i < dW[k].size(); ++i)
 					for (int j = 0; j < dW[k][i].size(); ++j)
-						net.W[k][i][j] += dW[k][i][j];
+						net.W[k][i][j] += rate * sigma[k][j] * layers[k][i];
 					
-			// Balance offsets
-			for (int k = 0; k < net.dimensions.size() - 1; ++k)
-				for (int i = 0; i < net.dimensions[k + 1]; ++i)
-					net.offsets[k][i] += doffset[k][i];
+			// Calculate offset correction
+			if (net.enable_offsets)
+				for (int k = 0; k < net.dimensions.size() - 1; ++k)
+					for (int i = 0; i < net.dimensions[k + 1]; ++i)
+						net.offsets[k][i] += rate * sigma[k][i];
 		};
 		
 		// Perform training of the network and calculating error value on the output layer
@@ -149,7 +139,8 @@ namespace NNSpace {
 			std::vector<std::vector<double>> sigma(net.dimensions.size() - 1);
 			
 			for (int i = 0; i < net.dimensions.size() - 1; ++i) {
-				doffset[i].resize(net.dimensions[i + 1]);
+				if (net.enable_offsets)
+					doffset[i].resize(net.dimensions[i + 1]);
 				sigma[i].resize(net.dimensions[i + 1]);
 			}
 			
@@ -171,28 +162,18 @@ namespace NNSpace {
 					
 					sigma[k][i] *= net.activators[k + 0]->derivative(layers_raw[k + 1 - 1][i]); // layers_raw[k + 1]
 				}
-			
+					
 			// Calculate weights correction
-			for (int k = 0; k < net.dimensions.size() - 1; ++k)
-				for (int i = 0; i < net.dimensions[k]; ++i)
-					for (int j = 0; j < net.dimensions[k + 1]; ++j)
-						dW[k][i][j] = rate * sigma[k][j] * layers[k][i];
-					
-			// Calculate offset correction
-			for (int k = 0; k < net.dimensions.size() - 1; ++k)
-				for (int i = 0; i < net.dimensions[k + 1]; ++i)
-					doffset[k][i] = rate * sigma[k][i];
-					
-			// Balance weights
 			for (int k = 0; k < net.dimensions.size() - 1; ++k)
 				for (int i = 0; i < dW[k].size(); ++i)
 					for (int j = 0; j < dW[k][i].size(); ++j)
-						net.W[k][i][j] += dW[k][i][j];
+						net.W[k][i][j] += rate * sigma[k][j] * layers[k][i];
 					
-			// Balance offsets
-			for (int k = 0; k < net.dimensions.size() - 1; ++k)
-				for (int i = 0; i < net.dimensions[k + 1]; ++i)
-					net.offsets[k][i] += doffset[k][i];
+			// Calculate offset correction
+			if (net.enable_offsets)
+				for (int k = 0; k < net.dimensions.size() - 1; ++k)
+					for (int i = 0; i < net.dimensions[k + 1]; ++i)
+						net.offsets[k][i] += rate * sigma[k][i];
 				
 				
 			if (Ltype == 2)

@@ -513,5 +513,48 @@ namespace NNSpace {
 			if (Ltype == 2)
 				return std::sqrt(error / (double) set.size());
 		};
+	
+		// Calculate max error on the output layer
+		long double calculate_approx_error_max(NNSpace::MLNet& net, std::vector<std::pair<double, double>>& set) {
+			if (set.size() == 0)
+				return 0;
+			
+			std::vector<double> input(1);
+			std::vector<double> output;
+			
+			long double error_max = 0;
+			
+			for (int i = 0; i < set.size(); ++i) {
+				input[0] = set[i].first;
+				output   = net.run(input);
+				
+				long double dv = std::abs(set[i].second - output[0]);
+				if (error_max < dv)
+					error_max = dv;
+			}
+			
+			return error_max;
+		};
+		
+		
+		// Calculate max error on the output layer
+		long double calculate_approx_error_max(NNSpace::MLNet& net, std::vector<std::pair<std::vector<double>, double>>& set, int Ltype = 1) {
+			if (set.size() == 0)
+				return 0;
+			
+			std::vector<double> output;
+			
+			long double error_max = 0;
+			
+			for (int i = 0; i < set.size(); ++i) {
+				output   = net.run(set[i].first);
+				
+				long double dv = std::abs(set[i].second - output[0]);
+				if (error_max < dv)
+					error_max = dv;
+			}
+			
+			return error_max;
+		};
 	};
 };

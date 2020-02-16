@@ -131,7 +131,7 @@ namespace NNSpace {
 			// n+1. size of nth layer
 			// n+2. 1 layer activator id
 			// 2n+1. n activator id
-			// 2n+2. one by one bias matrices
+			// 2n+2. one by one weight matrices
 			// 2n+3. offset matrix
 			// 2n+4. enable offsets
 			os << dimensions.size();

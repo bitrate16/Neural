@@ -64,7 +64,7 @@ public:
 		get_window().set_title("Approx plot");
 		
 		updated = 1;
-		point_set = get_plot_set();
+		get_plot_set();
 		
 		// Init default functions
 		functions["sin"] = [](std::vector<double> t) {
@@ -110,16 +110,14 @@ public:
 	void destroy() {};
 	
 	// Set of points used for displaying
-	std::vector<double> get_plot_set() {
-		std::vector<double> points(get_window().get_width());
+	void get_plot_set() {
+		point_set.resize(get_window().get_width() + 2, 0.0);
 		
 		double interval = (end - start) / (1.0 - 2.0 * off);
 		double step = interval / static_cast<double>(get_window().get_width() + 2);
 		int i = 0;
-		for (double d = start - interval * off + step; d < get_window().get_width(); d += step)
-			points[i++] = d;
-		
-		return points;
+		for (double d = start - interval * off + step; d < end + interval * off - step; d += step)
+			point_set[i++] = d;
 	};
 	
 	// Does reloading of the network from path
@@ -143,7 +141,7 @@ public:
 	
 	void resize() {
 		resized = 1;
-		point_set = get_plot_set();
+		get_plot_set();
 	};
 	
 	void loop() {
@@ -198,13 +196,13 @@ public:
 				input[0] = point_set[i];
 				output   = net.run(input);
 				
-				int x = get_window().get_width() * ((point_set[i] - point_set[0]) / interval);
-				int y = get_window().get_height() - get_window().get_height() * ((output[0] + 1.0) * (0.5 - offv) + offv);
+				int x = get_window().get_width() * ((point_set[0] - point_set[i]) / interval);
+				int y;
 				
 				if (back_func) {
 					
 					// Render background function
-					p.color(0, 0, 255);
+					p.color(255, 255, 0);
 					values["t"] = point_set[i];
 					double e = back_func->evaluate(values, functions);
 					y = get_window().get_height() - get_window().get_height() * ((e + 1.0) * (0.5 - offv) + offv);
@@ -218,6 +216,7 @@ public:
 				
 				// Render network
 				p.color(0, 255, 0);
+				y = get_window().get_height() - get_window().get_height() * ((output[0] + 1.0) * (0.5 - offv) + offv);
 				p.point(x, y);
 			}
 			
@@ -243,7 +242,7 @@ int main(int argc, const char** argv) {
 	s.start = start;
 	s.end   = end;
 	s.off  = off;
-	s.offv = off;
+	s.offv = offv;
 	
 	if (function != "") {
 		math_func::func* func = math_func::parse(function);

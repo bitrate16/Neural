@@ -2,6 +2,8 @@
 
 #include "math_func.h"
 
+#include <iostream>
+
 namespace math_func {
 	
 	func* mul(func* a, func* b) { 

@@ -25,14 +25,17 @@
  *  --test=%         Input test set
  *  --output=%       Output file for the network
  *  --Ltype=%        L1 or L2
+ *  --rate_factor=%  Scale factor for rate value
  *  --networks=%     Cmount of startup networks
- *  --log=[%]        Log type (TRAIN_TIME, TRAIN_OPERATIONS, TRAIN_ITERATIONS, TEST_ERROR)
+ *  --log=[%]        Log type (TRAIN_TIME, TRAIN_OPERATIONS, TRAIN_ITERATIONS, TEST_ERROR_AVG, TEST_ERROR_MAX)
  *
  * Make:
  * g++ src/train_test/multistart/approx_2d.cpp -o bin/multistart_approx_2d -O3 --std=c++17 -Iinclude -lstdc++fs
  *
  * Example:
- * ./bin/multistart_approx_2d --networks=16 --layers=[3] --activator=TanH --weight=1.0 --train=data/sin_1000.mset --test=data/sin_100.mset --output=networks/approx_sin.neetwook --log=[TRAIN_TIME,TEST_ERROR,TRAIN_ITERATIONS]
+ * ./bin/multistart_approx_2d --networks=16 --layers=[3] --offsets=true --activator=TanH --rate_factor=0.5 --weight=1.0 --train=data/sin_1000.mset --test=data/sin_100.mset --output=networks/approx_sin.neetwook --log=[TRAIN_TIME,TEST_ERROR_AVG,TEST_ERROR_MAX,TRAIN_ITERATIONS]
+ *
+ * ./bin/multistart_approx_2d --networks=64 --layers=[5] --offsets=true --activator=TanH --rate_factor=0.5 --weight=10.0 --train=data/sin_1000.mset --test=data/sin_100.mset --output=networks/approx_sin.neetwook --log=[TRAIN_TIME,TEST_ERROR_AVG,TEST_ERROR_MAX,TRAIN_ITERATIONS]
  */
 
 // Simply prints out the message and exits.
@@ -64,6 +67,9 @@ int main(int argc, const char** argv) {
 	// Read weight info
 	//  Input or 1.0
 	double wD = args["--weight"] && args["--weight"]->is_real() ? args["--weight"]->real() : 1.0;
+	
+	// Parse rate factor
+	double rate_factor = args["--rate_factor"] && args["--rate_factor"]->is_real() ? args["--rate_factor"]->real() : 1.0;
 	
 	// Read offsets flag
 	bool offsets = args["--offsets"] && args["--offsets"]->get_boolean();
@@ -182,7 +188,7 @@ int main(int argc, const char** argv) {
 			for (auto& p : train_sets[epo]) {
 				input[0]  = p.first;
 				output[0] = p.second;
-				rates[k]  = NNSpace::backpropagation::train_error(networks[k], Ltype, input, output, rates[k]);
+				rates[k]  = NNSpace::backpropagation::train_error(networks[k], Ltype, input, output, rates[k] * rate_factor);
 			}
 			
 			train_iterations += train_sets[epo].size();
@@ -236,8 +242,10 @@ int main(int argc, const char** argv) {
 		}
 		if (args["--log"]->array_contains("TRAIN_ITERATIONS"))
 			std::cout << "TRAIN_ITERATIONS=" << train_iterations << std::endl;
-		if (args["--log"]->array_contains("TEST_ERROR"))
+		if (args["--log"]->array_contains("TEST_ERROR_AVG"))
 			std::cout << "TEST_ERROR=" << errors_b[0] << std::endl;
+		if (args["--log"]->array_contains("TEST_ERROR_MAX")) 
+			std::cout << "TEST_ERROR_MAX=" << NNSpace::Common::calculate_approx_error_max(networks[0], test_set) << std::endl;
 	}
 	
 	// Write network to file

@@ -3,6 +3,8 @@
 #include "math_func.h"
 #include "pargs.h"
 
+#include <iostream>
+
 /*
  * (c) Copyright bitrate16 (GPLv3.0) 2020
  * Generates testing set for 2D approximation

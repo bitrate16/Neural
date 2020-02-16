@@ -26,13 +26,15 @@
  *  --steps=%        Amount of steps for training
  *  --output=%       Output file for the network
  *  --Ltype=%        L1 or L2
- *  --log=[%]        Log type (TRAIN_TIME, TRAIN_OPERATIONS, TRAIN_ITERATIONS, TEST_ERROR)
+ *  --log=[%]        Log type (TRAIN_TIME, TRAIN_OPERATIONS, TRAIN_ITERATIONS, TEST_ERROR_AVG, TEST_ERROR_MAX)
  *
  * Make:
  * g++ src/train_test/random_search/approx_2d.cpp -o bin/random_search_approx_2d -O3 --std=c++17 -Iinclude -lstdc++fs
  *
  * Example:
- * ./bin/random_search_approx_2d --steps=16 --layers=[3] --activator=TanH --weight=1.0 --train=data/sin_1000.mset --test=data/sin_100.mset --output=networks/approx_sin.neetwook --log=[TRAIN_TIME,TEST_ERROR,TRAIN_ITERATIONS]
+ * ./bin/random_search_approx_2d --steps=16 --layers=[3] --offsets=true --activator=TanH --weight=1.0 --train=data/sin_1000.mset --test=data/sin_100.mset --output=networks/approx_sin.neetwook --log=[TRAIN_TIME,TEST_ERROR_AVG,TEST_ERROR_MAX,TRAIN_ITERATIONS]
+ *
+ * ./bin/random_search_approx_2d --steps=16 --layers=[5] --offsets=true --activator=TanH --weight=10.0 --train=data/sin_1000.mset --test=data/sin_100.mset --output=networks/approx_sin.neetwook --log=[TRAIN_TIME,TEST_ERROR_AVG,TEST_ERROR_MAX,TRAIN_ITERATIONS]
  */
 
 // Simply prints out the message and exits.
@@ -221,8 +223,10 @@ int main(int argc, const char** argv) {
 		}
 		if (args["--log"]->array_contains("TRAIN_ITERATIONS"))
 			std::cout << "TRAIN_ITERATIONS=" << train_iterations << std::endl;
-		if (args["--log"]->array_contains("TEST_ERROR"))
+		if (args["--log"]->array_contains("TEST_ERROR_AVG"))
 			std::cout << "TEST_ERROR=" << error_b << std::endl;
+		if (args["--log"]->array_contains("TEST_ERROR_MAX")) 
+			std::cout << "TEST_ERROR_MAX=" << NNSpace::Common::calculate_approx_error_max(network, test_set) << std::endl;
 	}
 	
 	// Write network to file
