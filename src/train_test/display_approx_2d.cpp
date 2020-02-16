@@ -210,7 +210,7 @@ public:
 					
 					// Render error value
 					p.color(255, 0, 0);
-					y = get_window().get_height() - get_window().get_height() * ((std::abs(output[0] - e) + 1.0) * (0.5 - offv) + offv);
+					y = get_window().get_height() - get_window().get_height() * ((std::fabs(output[0] - e) + 1.0) * (0.5 - offv) + offv);
 					p.point(x, y);
 				}
 				

@@ -14,9 +14,9 @@
 #include <vector>
 #include <cmath>
 
+#include "mnist/mnist_reader.hpp"
 #include "SingleLayerNetwork.h"
 #include "MultiLayerNetwork.h"
-#include "mnist/mnist_reader.hpp"
 
 // > Appriximation testing
 // 1. Generate test for function
@@ -528,7 +528,7 @@ namespace NNSpace {
 				input[0] = set[i].first;
 				output   = net.run(input);
 				
-				long double dv = std::abs(set[i].second - output[0]);
+				long double dv = std::fabs(set[i].second - output[0]);
 				if (error_max < dv)
 					error_max = dv;
 			}
@@ -549,12 +549,148 @@ namespace NNSpace {
 			for (int i = 0; i < set.size(); ++i) {
 				output   = net.run(set[i].first);
 				
-				long double dv = std::abs(set[i].second - output[0]);
+				long double dv = std::fabs(set[i].second - output[0]);
 				if (error_max < dv)
 					error_max = dv;
 			}
 			
 			return error_max;
+		};
+	
+	
+		// M N I S T
+		
+		
+		bool load_mnist(mnist::MNIST_dataset<std::vector, std::vector<uint8_t>, uint8_t>& set, const std::string& dir) {
+			set = mnist::read_dataset<std::vector, std::vector, uint8_t, uint8_t>(dir);
+			
+			return set.training_images.size();
+		};
+		
+		long double calculate_mnist_error(NNSpace::MLNet& net, mnist::MNIST_dataset<std::vector, std::vector<uint8_t>, uint8_t>& set, int Ltype = 1, int offset = 0, int size = -1) {
+			if (size == -1)
+				size = set.test_images.size();
+			if (offset >= set.test_images.size())
+				return 0;
+			if (offset + size > set.test_images.size())
+				size = set.test_images.size() - offset;
+			
+			// ???: N size set, M output, how to calculate error?
+			
+			// Currently: 
+			//  L1: SUM [SUM [ABS (dv)] / M] / N
+			//  L2: SQRT (SUM [SQRT (SUM [dv ^ 2] / M)] / N)
+			
+			long double error = 0;
+			
+			std::vector<double> input(28 * 28);
+			std::vector<double> output(10);
+			
+			for (int i = offset; i < offset + size; ++i) {
+				for (int k = 0; k < 28 * 28; ++k)
+					input[k] = (double) set.test_images[i][k]  * (1.0 / 255.0);
+				
+				output = net.run(input);
+				
+				long double local_error = 0;
+				for (int j = 0; j < 10; ++j) {
+					long double dv = (set.test_labels[i] == j) ? 1.0 - output[j] : output[j];
+					
+					if (Ltype == 1)
+						local_error += std::fabs(dv);
+					else if (Ltype == 2)
+						local_error += dv * dv;
+				}
+				
+				if (Ltype == 1)
+					error += local_error * 0.1;
+				else if (Ltype == 2)
+					error += std::sqrt(local_error * 0.1);
+			}
+			
+			if (Ltype == 1)
+				return error / (long double) size;
+			else if (Ltype == 2)
+				return std::sqrt(error / (long double) size);
+			return 0;
+		};
+		
+		long double calculate_mnist_match(NNSpace::MLNet& net, mnist::MNIST_dataset<std::vector, std::vector<uint8_t>, uint8_t>& set, int offset = 0, int size = -1) {
+			if (size == -1)
+				size = set.test_images.size();
+			if (offset >= set.test_images.size())
+				return 0;
+			if (offset + size > set.test_images.size())
+				size = set.test_images.size() - offset;
+			
+			// Calculate as AmountOfCorrect / Amount
+			
+			int correct = 0;
+			
+			std::vector<double> input(28 * 28);
+			std::vector<double> output(10);
+			
+			for (int i = offset; i < offset + size; ++i) {
+				for (int k = 0; k < 28 * 28; ++k)
+					input[k] = (double) set.test_images[i][k]  * (1.0 / 255.0);
+				
+				output = net.run(input);
+				
+				double max = 0;
+				double max_ind = 0;
+				
+				for (int j = 0; j < 10; ++j) 
+					if (output[j] > max) {
+						max = output[j];
+						max_ind = j;
+					}
+				
+				if (max_ind == set.test_labels[i])
+					++correct;
+			}
+			
+			return (double) correct / (double) size;
+		};
+		
+		long double calculate_mnist_error_max(NNSpace::MLNet& net, mnist::MNIST_dataset<std::vector, std::vector<uint8_t>, uint8_t>& set, int Ltype = 1, int offset = 0, int size = -1) {
+			if (size == -1)
+				size = set.test_images.size();
+			if (offset >= set.test_images.size())
+				return 0;
+			if (offset + size > set.test_images.size())
+				size = set.test_images.size() - offset;
+			
+			long double max_error = 0;
+			
+			std::vector<double> input(28 * 28);
+			std::vector<double> output(10);
+			
+			for (int i = offset; i < offset + size; ++i) {
+				for (int k = 0; k < 28 * 28; ++k)
+					input[k] = (double) set.test_images[i][k]  * (1.0 / 255.0);
+				
+				output = net.run(input);
+				
+				long double local_error = 0;
+				for (int j = 0; j < 10; ++j) {
+					long double dv = (set.test_labels[i] == j) ? 1.0 - output[j] : output[j];
+					
+					if (Ltype == 1)
+						local_error += std::fabs(dv);
+					else if (Ltype == 2)
+						local_error += dv * dv;
+				}
+				
+				if (Ltype == 1)
+					local_error = local_error * 0.1;
+				else if (Ltype == 2)
+					local_error = std::sqrt(local_error * 0.1);
+				
+				if (max_error < local_error)
+					max_error = local_error;
+			}
+			
+			return max_error;
 		};
 	};
 };

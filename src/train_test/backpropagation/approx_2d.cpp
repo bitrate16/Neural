@@ -26,9 +26,9 @@
  * g++ src/train_test/backpropagation/approx_2d.cpp -o bin/backpropagation_approx_2d -O3 --std=c++17 -Iinclude -lstdc++fs
  *
  * Example:
- * ./bin/backpropagation_approx_2d --layers=[3] --ofsets=true --activator=TanH --rate_factor=0.5 --weight=1.0 --train=data/sin_1000.mset --test=data/sin_100.mset --output=networks/approx_sin.neetwook --log=[TRAIN_TIME,TEST_ERROR_AVG,TEST_ERROR_MAX,TRAIN_ITERATIONS]
+ * ./bin/backpropagation_approx_2d --layers=[3] --offsets=true --activator=TanH --rate_factor=0.5 --weight=1.0 --train=data/sin_1000.mset --test=data/sin_100.mset --output=networks/approx_sin.neetwook --log=[TRAIN_TIME,TEST_ERROR_AVG,TEST_ERROR_MAX,TRAIN_ITERATIONS]
  * 
- * ./bin/backpropagation_approx_2d --layers=[7] --ofsets=true --activator=TanH --rate_factor=0.5 --weight=10.0 --train=data/sin_1000.mset --test=data/sin_100.mset --output=networks/approx_sin.neetwook --log=[TRAIN_TIME,TEST_ERROR_AVG,TEST_ERROR_MAX,TRAIN_ITERATIONS]
+ * ./bin/backpropagation_approx_2d --layers=[7] --offsets=true --activator=TanH --rate_factor=0.5 --weight=10.0 --train=data/sin_1000.mset --test=data/sin_100.mset --output=networks/approx_sin.neetwook --log=[TRAIN_TIME,TEST_ERROR_AVG,TEST_ERROR_MAX,TRAIN_ITERATIONS]
  * 
  * 
  */
@@ -94,9 +94,9 @@ int main(int argc, const char** argv) {
 	// Add activators (default is linear)
 	if (args["--activator"]) {
 		if (args["--activator"]->is_string()) {
-			if (args["--activator"]->string() == "LINEAR")          network.setActivator(new NNSpace::Linear()        );
-			if (args["--activator"]->string() == "SIGMOID")         network.setActivator(new NNSpace::Sigmoid()       );
-			if (args["--activator"]->string() == "BIPOLAR_SIGMOID") network.setActivator(new NNSpace::BipolarSigmoid());
+			if (args["--activator"]->string() == "Linear")          network.setActivator(new NNSpace::Linear()        );
+			if (args["--activator"]->string() == "Sigmoid")         network.setActivator(new NNSpace::Sigmoid()       );
+			if (args["--activator"]->string() == "BipolarSigmoid")  network.setActivator(new NNSpace::BipolarSigmoid());
 			if (args["--activator"]->string() == "ReLU")            network.setActivator(new NNSpace::ReLU()          );
 			if (args["--activator"]->string() == "TanH")            network.setActivator(new NNSpace::TanH()          );
 		} else if (args["--activator"]->is_integer()) {
@@ -108,9 +108,9 @@ int main(int argc, const char** argv) {
 		} else if (args["--activator"]->is_array()) {
 			for (int i = 0; i < args["--activator"]->array().size(); ++i) {
 				if (args["--activator"]->array()[i]->is_string()) {
-					if (args["--activator"]->array()[i]->string() == "LINEAR")          network.setActivator(new NNSpace::Linear()        );
-					if (args["--activator"]->array()[i]->string() == "SIGMOID")         network.setActivator(new NNSpace::Sigmoid()       );
-					if (args["--activator"]->array()[i]->string() == "BIPOLAR_SIGMOID") network.setActivator(new NNSpace::BipolarSigmoid());
+					if (args["--activator"]->array()[i]->string() == "Linear")          network.setActivator(new NNSpace::Linear()        );
+					if (args["--activator"]->array()[i]->string() == "Sigmoid")         network.setActivator(new NNSpace::Sigmoid()       );
+					if (args["--activator"]->array()[i]->string() == "BipolarSigmoid")  network.setActivator(new NNSpace::BipolarSigmoid());
 					if (args["--activator"]->array()[i]->string() == "ReLU")            network.setActivator(new NNSpace::ReLU()          );
 					if (args["--activator"]->array()[i]->string() == "TanH")            network.setActivator(new NNSpace::TanH()          );
 				} else if (args["--activator"]->array()[i]->is_integer()) {
@@ -133,7 +133,6 @@ int main(int argc, const char** argv) {
 	std::vector<double> output(1);
 	
 	for (auto& p : train_set) {
-		// std::cout << "TRAIN " << NNSpace::Common::calculate_approx_error(network, test_set, Ltype) << ' ' << rate << std::endl;
 		input[0]  = p.first;
 		output[0] = p.second;
 		rate = NNSpace::backpropagation::train_error(network, Ltype, input, output, rate * rate_factor);

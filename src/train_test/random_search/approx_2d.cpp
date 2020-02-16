@@ -102,9 +102,9 @@ int main(int argc, const char** argv) {
 	// Add activators (default is linear)
 	if (args["--activator"]) {
 		if (args["--activator"]->is_string()) {
-			if (args["--activator"]->string() == "LINEAR")          network.setActivator(new NNSpace::Linear()        );
-			if (args["--activator"]->string() == "SIGMOID")         network.setActivator(new NNSpace::Sigmoid()       );
-			if (args["--activator"]->string() == "BIPOLAR_SIGMOID") network.setActivator(new NNSpace::BipolarSigmoid());
+			if (args["--activator"]->string() == "Linear")          network.setActivator(new NNSpace::Linear()        );
+			if (args["--activator"]->string() == "Sigmoid")         network.setActivator(new NNSpace::Sigmoid()       );
+			if (args["--activator"]->string() == "BipolarSigmoid")  network.setActivator(new NNSpace::BipolarSigmoid());
 			if (args["--activator"]->string() == "ReLU")            network.setActivator(new NNSpace::ReLU()          );
 			if (args["--activator"]->string() == "TanH")            network.setActivator(new NNSpace::TanH()          );
 		} else if (args["--activator"]->is_integer()) {
@@ -116,9 +116,9 @@ int main(int argc, const char** argv) {
 		} else if (args["--activator"]->is_array()) {
 			for (int i = 0; i < args["--activator"]->array().size(); ++i) {
 				if (args["--activator"]->array()[i]->is_string()) {
-					if (args["--activator"]->array()[i]->string() == "LINEAR")          network.setActivator(new NNSpace::Linear()        );
-					if (args["--activator"]->array()[i]->string() == "SIGMOID")         network.setActivator(new NNSpace::Sigmoid()       );
-					if (args["--activator"]->array()[i]->string() == "BIPOLAR_SIGMOID") network.setActivator(new NNSpace::BipolarSigmoid());
+					if (args["--activator"]->array()[i]->string() == "Linear")          network.setActivator(new NNSpace::Linear()        );
+					if (args["--activator"]->array()[i]->string() == "Sigmoid")         network.setActivator(new NNSpace::Sigmoid()       );
+					if (args["--activator"]->array()[i]->string() == "BipolarSigmoid")  network.setActivator(new NNSpace::BipolarSigmoid());
 					if (args["--activator"]->array()[i]->string() == "ReLU")            network.setActivator(new NNSpace::ReLU()          );
 					if (args["--activator"]->array()[i]->string() == "TanH")            network.setActivator(new NNSpace::TanH()          );
 				} else if (args["--activator"]->array()[i]->is_integer()) {
@@ -147,6 +147,14 @@ int main(int argc, const char** argv) {
 			step[i][j].resize(dimensions[i + 1], wD / 2.0);
 		}
 	}
+	
+	std::vector<std::vector<double>> positive_offset_probability(dimensions.size() - 1);
+	std::vector<std::vector<double>> offset_step(dimensions.size() - 1);
+	if (offsets)
+		for (int i = 0; i < dimensions.size() - 1; ++i) {
+			positive_offset_probability[i].resize(dimensions[i + 1], 0.5);
+			offset_step[i].resize(dimensions[i + 1], 0.5);
+		}
 	
 	// Error value before step
 	double error_a = 0.5;
@@ -201,14 +209,39 @@ int main(int argc, const char** argv) {
 					else
 						network.W[d][i][j] -= step[d][i][j];
 				}
+			
+		// Perform offset correction depending on probability
+		if (offsets)
+			for (int i = 0; i < dimensions.size() - 1; ++i)
+				for (int j = 0; j < dimensions[i + 1]; ++j) {
+					// Change probability depending on error_d and error_b after previous step
+					if (s) {						
+						#ifdef METHOD_I
+							if (error_d > 0)
+								offset_step[i][j] = offset_step[i][j] * 2.0 * (1.0 - error_d) * 2.0 * error_b;
+						#endif
+						#ifdef METHOD_II
+							if (error_d > 0)
+								offset_step[i][j] = offset_step[i][j] * 2.0 * error_b;
+						#endif
+						
+						positive_offset_probability[i][j] = positive_offset_probability[i][j] * (1.0 + error_d);
+						if (positive_offset_probability[i][j] > 1.0)
+							positive_offset_probability[i][j] = 1.0;
+					}
+					
+					// Generate random direction & step on it
+					if (probably_true(positive_offset_probability[i][j]))
+						network.offsets[i][j] += offset_step[i][j];
+					else
+						network.offsets[i][j] -= offset_step[i][j];
+				}
 		
 		// Calculate error value after step (teach_set)
 		error_b = NNSpace::Common::calculate_approx_error(network, train_set, Ltype);
 		
 		// Calculate error change speed
 		error_d = error_b - error_a;
-		
-		std::cout << "error = " << error_b << ", speed = " << error_d << std::endl;
 	}
 	
 	auto end_time = std::chrono::high_resolution_clock::now();

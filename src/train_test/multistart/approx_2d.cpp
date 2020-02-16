@@ -121,9 +121,9 @@ int main(int argc, const char** argv) {
 	if (args["--activator"]) {
 		for (int i = 0; i < networks.size(); ++i) {
 			if (args["--activator"]->is_string()) {
-				if (args["--activator"]->string() == "LINEAR")          networks[i].setActivator(new NNSpace::Linear()        );
-				if (args["--activator"]->string() == "SIGMOID")         networks[i].setActivator(new NNSpace::Sigmoid()       );
-				if (args["--activator"]->string() == "BIPOLAR_SIGMOID") networks[i].setActivator(new NNSpace::BipolarSigmoid());
+				if (args["--activator"]->string() == "Linear")          networks[i].setActivator(new NNSpace::Linear()        );
+				if (args["--activator"]->string() == "Sigmoid")         networks[i].setActivator(new NNSpace::Sigmoid()       );
+				if (args["--activator"]->string() == "BipolarSigmoid")  networks[i].setActivator(new NNSpace::BipolarSigmoid());
 				if (args["--activator"]->string() == "ReLU")            networks[i].setActivator(new NNSpace::ReLU()          );
 				if (args["--activator"]->string() == "TanH")            networks[i].setActivator(new NNSpace::TanH()          );
 			} else if (args["--activator"]->is_integer()) {
@@ -135,9 +135,9 @@ int main(int argc, const char** argv) {
 			} else if (args["--activator"]->is_array()) {
 				for (int i = 0; i < args["--activator"]->array().size(); ++i) {
 					if (args["--activator"]->array()[i]->is_string()) {
-						if (args["--activator"]->array()[i]->string() == "LINEAR")          networks[i].setActivator(new NNSpace::Linear()        );
-						if (args["--activator"]->array()[i]->string() == "SIGMOID")         networks[i].setActivator(new NNSpace::Sigmoid()       );
-						if (args["--activator"]->array()[i]->string() == "BIPOLAR_SIGMOID") networks[i].setActivator(new NNSpace::BipolarSigmoid());
+						if (args["--activator"]->array()[i]->string() == "Linear")          networks[i].setActivator(new NNSpace::Linear()        );
+						if (args["--activator"]->array()[i]->string() == "Sigmoid")         networks[i].setActivator(new NNSpace::Sigmoid()       );
+						if (args["--activator"]->array()[i]->string() == "BipolarSigmoid") networks[i].setActivator(new NNSpace::BipolarSigmoid());
 						if (args["--activator"]->array()[i]->string() == "ReLU")            networks[i].setActivator(new NNSpace::ReLU()          );
 						if (args["--activator"]->array()[i]->string() == "TanH")            networks[i].setActivator(new NNSpace::TanH()          );
 					} else if (args["--activator"]->array()[i]->is_integer()) {
