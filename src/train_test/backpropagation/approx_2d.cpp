@@ -19,6 +19,7 @@
  *  --test=%         Input test set
  *  --output=%       Output file for the network
  *  --rate_factor=%  Scale factor for rate value
+ *  --rate=%         Constant rate value
  *  --Ltype=%        L1 or L2
  *  --log=[%]        Log type (TRAIN_TIME, TRAIN_OPERATIONS, TRAIN_ITERATIONS, TEST_ERROR_AVG, TEST_ERROR_MAX)
  *
@@ -65,6 +66,10 @@ int main(int argc, const char** argv) {
 	
 	// Parse rate factor
 	double rate_factor = args["--rate_factor"] && args["--rate_factor"]->is_real() ? args["--rate_factor"]->real() : 1.0;
+	
+	bool has_rate = false;
+	double rate_constant = (has_rate = args["--rate"] && args["--rate"]->is_real()) ? args["--rate"]->real() : 0.0;
+		
 	
 	// Read offsets flag
 	bool offsets = args["--offsets"] && args["--offsets"]->get_boolean();
@@ -135,7 +140,10 @@ int main(int argc, const char** argv) {
 	for (auto& p : train_set) {
 		input[0]  = p.first;
 		output[0] = p.second;
-		rate = NNSpace::backpropagation::train_error(network, Ltype, input, output, rate * rate_factor);
+		if (has_rate)
+			NNSpace::backpropagation::train_error(network, Ltype, input, output, rate_constant * rate_factor);
+		else
+			rate = NNSpace::backpropagation::train_error(network, Ltype, input, output, rate * rate_factor);
 	}
 	
 	auto end_time = std::chrono::high_resolution_clock::now();

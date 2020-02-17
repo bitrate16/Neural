@@ -24,6 +24,7 @@
  *  --test_offset=%  Offset value for test set
  *  --output=%       Output file for the network
  *  --rate_factor=%  Scale factor for rate value
+ *  --rate=%         Constant rate value
  *  --Ltype=%        L1 or L2
  *  --log=[%]        Log type (TRAIN_TIME, TRAIN_OPERATIONS, TRAIN_ITERATIONS, TEST_ERROR_AVG, TEST_ERROR_MAX, TEST_MATCH)
  *
@@ -35,6 +36,12 @@
  * 
  * 0.817:
  * ./bin/backpropagation_mnist --layers=[] --train_size=10000 --test_size=1000 --offsets=true --activator=Sigmoid --rate_factor=1.0 --weight=1.0 --mnist=data/mnist --output=networks/mnist_test.neetwook --log=[TRAIN_TIME,TEST_ERROR_AVG,TEST_ERROR_MAX,TRAIN_ITERATIONS,TEST_MATCH]
+ * 
+ * 0.905
+ * ./bin/backpropagation_mnist --layers=[100] --train_size=50000 --test_size=1000 --offsets=true --activator=Sigmoid --rate_factor=1.0 --weight=1.0 --mnist=data/mnist --output=networks/mnist_test.neetwook --log=[TRAIN_TIME,TEST_ERROR_AVG,TEST_ERROR_MAX,TRAIN_ITERATIONS,TEST_MATCH]
+ * 
+ * 0.93:
+ * ./bin/backpropagation_mnist --layers=[100] --train_size=50000 --test_size=1000 --offsets=true --activator=Sigmoid --rate=0.2 --weight=1.0 --mnist=data/mnist --output=networks/mnist_test.neetwook --log=[TRAIN_TIME,TEST_ERROR_AVG,TEST_ERROR_MAX,TRAIN_ITERATIONS,TEST_MATCH]
  */
 
 // Simply prints out the message and exits.
@@ -69,6 +76,9 @@ int main(int argc, const char** argv) {
 	
 	// Parse rate factor
 	double rate_factor = args["--rate_factor"] && args["--rate_factor"]->is_real() ? args["--rate_factor"]->real() : 1.0;
+	
+	bool has_rate = false;
+	double rate_constant = (has_rate = args["--rate"] && args["--rate"]->is_real()) ? args["--rate"]->real() : 0.0;
 	
 	// Read offsets flag
 	bool offsets = args["--offsets"] && args["--offsets"]->get_boolean();
@@ -155,7 +165,10 @@ int main(int argc, const char** argv) {
 		
 		output[set.training_labels[i]] = 1.0;
 		
-		rate = NNSpace::backpropagation::train_error(network, Ltype, input, output, rate * rate_factor);
+		if (has_rate)
+			NNSpace::backpropagation::train_error(network, Ltype, input, output, rate_constant * rate_factor);
+		else
+			rate = NNSpace::backpropagation::train_error(network, Ltype, input, output, rate * rate_factor);
 		
 		output[set.training_labels[i]] = 0.0;
 	}

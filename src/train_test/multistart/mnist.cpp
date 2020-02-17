@@ -31,6 +31,7 @@
  *  --output=%       Output file for the network
  *  --Ltype=%        L1 or L2
  *  --rate_factor=%  Scale factor for rate value
+ *  --rate=%         Constant rate value
  *  --networks=%     Amount of startup networks
  *  --log=[%]        Log type (TRAIN_TIME, TRAIN_OPERATIONS, TRAIN_ITERATIONS, TEST_ERROR_AVG, TEST_ERROR_MAX)
  *
@@ -76,6 +77,9 @@ int main(int argc, const char** argv) {
 	
 	// Parse rate factor
 	double rate_factor = args["--rate_factor"] && args["--rate_factor"]->is_real() ? args["--rate_factor"]->real() : 1.0;
+	
+	bool has_rate = false;
+	double rate_constant = (has_rate = args["--rate"] && args["--rate"]->is_real()) ? args["--rate"]->real() : 0.0;
 	
 	// Read offsets flag
 	bool offsets = args["--offsets"] && args["--offsets"]->get_boolean();
@@ -202,7 +206,10 @@ int main(int argc, const char** argv) {
 			
 				output[set.training_labels[i]] = 1.0;
 				
-				rates[k] = NNSpace::backpropagation::train_error(networks[k], Ltype, input, output, rates[k] * rate_factor);
+				if (has_rate)
+					NNSpace::backpropagation::train_error(networks[k], Ltype, input, output, rate_constant * rate_factor);
+				else
+					rates[k] = NNSpace::backpropagation::train_error(networks[k], Ltype, input, output, rates[k] * rate_factor);
 				
 				output[set.training_labels[i]] = 0.0;
 			}
