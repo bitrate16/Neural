@@ -31,7 +31,7 @@
  *  --output=%       Output file for the network
  *  --Ltype=%        L1 or L2
  *  --rate_factor=%  Scale factor for rate value
- *  --networks=%     Cmount of startup networks
+ *  --networks=%     Amount of startup networks
  *  --log=[%]        Log type (TRAIN_TIME, TRAIN_OPERATIONS, TRAIN_ITERATIONS, TEST_ERROR_AVG, TEST_ERROR_MAX)
  *
  * Make:
@@ -179,27 +179,27 @@ int main(int argc, const char** argv) {
 	std::vector<double> errors_b(networks.size(), 0.5);
 	std::vector<double> errors_d(networks.size(), 0.5);
 	// Maximal error value 
-	double error_max = 0.0;
+	double error_min = 0.0;
 	// Minimal Error delta
-	double varie_min = 2.0;
+	double varie_max = 2.0;
 	// Index array for sorting the networks by their errro value
 	std::vector<int> index_array(networks.size());
 	
 	// Iterate over epochs
-	for (int epo = 0; epo < Af; ++epo) {
-		error_max      = 0.0;
-		varie_min      = std::numeric_limits<long double>::max();
+	for (int epo = 0; epo < Af + 1; ++epo) {
+		error_min      = std::numeric_limits<long double>::max();
+		varie_max      = 0.0;
 		
 		for (int k = 0; k < networks.size(); ++k) {
 			errors_a[k]    = errors_b[k];
 			index_array[k] = k;
 			
 			// Train with backpropagation
-			for (int i = train_offset + (train_size / Af) * epo; i < train_offset + (train_size / Af) * (epo + 1); ++i) {
+			for (int i = train_offset + (train_size / (Af + 1)) * epo; i < train_offset + (train_size / (Af + 1)) * (epo + 1); ++i) {
 				// Convert input
 				for (int j = 0; j < 28 * 28; ++j)
 					input[j] = (double) set.training_images[i][j] * (1.0 / 255.0);
-				
+			
 				output[set.training_labels[i]] = 1.0;
 				
 				rates[k] = NNSpace::backpropagation::train_error(networks[k], Ltype, input, output, rates[k] * rate_factor);
@@ -207,24 +207,27 @@ int main(int argc, const char** argv) {
 				output[set.training_labels[i]] = 0.0;
 			}
 			
-			train_iterations += train_size / Af;
+			train_iterations += train_size / (Af + 1);
 			
 			// Calculate error value on testing set
 			errors_b[k] = NNSpace::Common::calculate_mnist_error(networks[k], set, Ltype, test_offset, test_size);
 			errors_d[k] = errors_b[k] - errors_a[k];
 			
 			// Update min/max
-			if (varie_min > errors_d[k])
-				varie_min = errors_d[k];
-			if (error_max < errors_b[k])
-				error_max = errors_b[k];
+			if (varie_max < errors_d[k])
+				varie_max = errors_d[k];
+			if (error_min > errors_b[k])
+				error_min = errors_b[k];
 		}
 		
+		if (epo == Af)
+			break;
+		
 		// Order networks by their testing error value
-		std::sort(index_array.begin(), index_array.end(), [&errors_d, &errors_b, &error_max, &varie_min](const int& a, const int& b) {
-			return 	(error_max - errors_d[a] + errors_b[a] - varie_min)  // Distance from A to error values
+		std::sort(index_array.begin(), index_array.end(), [&errors_d, &errors_b, &varie_max, &error_min](const int& a, const int& b) {
+			return 	(varie_max - errors_d[a] + errors_b[a] - error_min)  // Distance from A to error values
 					>
-					(error_max - errors_d[b] + errors_b[b] - varie_min); // Distance from B to error values
+					(varie_max - errors_d[b] + errors_b[b] - error_min); // Distance from B to error values
 		});
 		
 		// Reduce amount of networks by 2

@@ -103,10 +103,10 @@ int main(int argc, const char** argv) {
 		if (!NNSpace::Common::read_approx_set(train_set, train))
 			exit_message("Set " + train + " not found");
 		
-		if (train_set.size() / Af == 0)
+		if (train_set.size() / (Af + 1) == 0)
 			exit_message("Not enough train set size");
 		
-		NNSpace::Common::split_approx_set(train_sets, train_set, train_set.size() / Af);
+		NNSpace::Common::split_approx_set(train_sets, train_set, train_set.size() / (Af + 1));
 	}
 	
 	std::vector<std::pair<double, double>> test_set;
@@ -169,16 +169,16 @@ int main(int argc, const char** argv) {
 	std::vector<double> errors_b(networks.size(), 0.5);
 	std::vector<double> errors_d(networks.size(), 0.5);
 	// Maximal error value 
-	double error_max = 0.0;
+	double error_min = 0.0;
 	// Minimal Error delta
-	double varie_min = 2.0;
+	double varie_max = 2.0;
 	// Index array for sorting the networks by their errro value
 	std::vector<int> index_array(networks.size());
 	
 	// Iterate over epochs
-	for (int epo = 0; epo < Af; ++epo) {
-		error_max      = 0.0;
-		varie_min      = std::numeric_limits<long double>::max();
+	for (int epo = 0; epo < (Af + 1); ++epo) {
+		error_min      = std::numeric_limits<long double>::max();
+		varie_max      = 0.0;
 		
 		for (int k = 0; k < networks.size(); ++k) {
 			errors_a[k]    = errors_b[k];
@@ -198,17 +198,20 @@ int main(int argc, const char** argv) {
 			errors_d[k] = errors_b[k] - errors_a[k];
 			
 			// Update min/max
-			if (varie_min > errors_d[k])
-				varie_min = errors_d[k];
-			if (error_max < errors_b[k])
-				error_max = errors_b[k];
+			if (varie_max < errors_d[k])
+				varie_max = errors_d[k];
+			if (error_min > errors_b[k])
+				error_min = errors_b[k];
 		}
 		
+		if (epo == Af)
+			break;
+		
 		// Order networks by their testing error value
-		std::sort(index_array.begin(), index_array.end(), [&errors_d, &errors_b, &error_max, &varie_min](const int& a, const int& b) {
-			return 	(error_max - errors_d[a] + errors_b[a] - varie_min)  // Distance from A to error values
+		std::sort(index_array.begin(), index_array.end(), [&errors_d, &errors_b, &error_min, &varie_max](const int& a, const int& b) {
+			return 	(varie_max - errors_d[a] + errors_b[a] - error_min)  // Distance from A to error values
 					>
-					(error_max - errors_d[b] + errors_b[b] - varie_min); // Distance from B to error values
+					(varie_max - errors_d[b] + errors_b[b] - error_min); // Distance from B to error values
 		});
 		
 		// Reduce amount of networks by 2

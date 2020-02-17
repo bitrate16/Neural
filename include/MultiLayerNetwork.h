@@ -124,6 +124,52 @@ namespace NNSpace {
 			return layers.back();
 		};
 		
+		void run(const std::vector<double>& input, std::vector<double>& output) {
+			// Previous layer
+			std::vector<double> layer = input;
+			// Current layer
+			// output
+			
+			// Regular process
+			for (int k = 0; k < dimensions.size() - 1; ++k) {
+				if (k)
+					layer.assign(output.begin(), output.end());
+				
+				output.resize(dimensions[k + 1]);
+				
+				// calculate RAW layer outputs & normalize them
+				for (int j = 0; j < dimensions[k + 1]; ++j) {
+					output[j] = enable_offsets ? offsets[k][j] : 0;
+					
+					for (int i = 0; i < dimensions[k]; ++i)
+						output[j] += layer[i] * W[k][i][j];
+					
+					// Normalize
+					output[j] = activators[k]->process(output[j]);
+				}
+			}
+			
+			std::vector<std::vector<double>> layers; // [0-N]
+			layers.resize(dimensions.size());
+			layers[0] = input;
+			
+			// Regular process
+			for (int k = 0; k < dimensions.size() - 1; ++k) {
+				layers[k + 1].resize(dimensions[k + 1]);
+				
+				// calculate RAW layer outputs & normalize them
+				for (int j = 0; j < dimensions[k + 1]; ++j) {
+					layers[k + 1][j] = enable_offsets ? offsets[k][j] : 0;
+					
+					for (int i = 0; i < dimensions[k]; ++i)
+						layers[k + 1][j] += layers[k][i] * W[k][i][j];
+					
+					// Normalize
+					layers[k + 1][j] = activators[k]->process(layers[k + 1][j]);
+				}
+			}
+		};
+		
 		void serialize(std::ostream& os) {
 			// Format:
 			// 1. number of layers

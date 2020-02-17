@@ -194,7 +194,7 @@ public:
 			
 			for (int i = 0; i < point_set.size(); ++i) {
 				input[0] = point_set[i];
-				output   = net.run(input);
+				net.run(input, output);
 				
 				int x = get_window().get_width() * ((point_set[0] - point_set[i]) / interval);
 				int y;

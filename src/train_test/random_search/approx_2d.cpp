@@ -138,21 +138,26 @@ int main(int argc, const char** argv) {
 	
 	// Initialize positive step probability & step value
 	std::vector<std::vector<std::vector<double>>> positive_probability(dimensions.size() - 1);
+	std::vector<std::vector<std::vector<bool>>> positive_step(dimensions.size() - 1);
 	std::vector<std::vector<std::vector<double>>> step(dimensions.size() - 1);
 	for (int i = 0; i < dimensions.size() - 1; ++i) {
 		positive_probability[i].resize(dimensions[i]);
+		positive_step[i].resize(dimensions[i]);
 		step[i].resize(dimensions[i]);
 		for (int j = 0; j < dimensions[i]; ++j) {
 			positive_probability[i][j].resize(dimensions[i + 1], 0.5);
+			positive_step[i][j].resize(dimensions[i + 1], false);
 			step[i][j].resize(dimensions[i + 1], wD / 4.0);
 		}
 	}
 	
 	std::vector<std::vector<double>> positive_offset_probability(dimensions.size() - 1);
+	std::vector<std::vector<bool>> positive_offset_step(dimensions.size() - 1);
 	std::vector<std::vector<double>> offset_step(dimensions.size() - 1);
 	if (offsets)
 		for (int i = 0; i < dimensions.size() - 1; ++i) {
 			positive_offset_probability[i].resize(dimensions[i + 1], 0.5);
+			positive_offset_step[i].resize(dimensions[i + 1], false);
 			offset_step[i].resize(dimensions[i + 1], 0.25);
 		}
 	
@@ -186,8 +191,8 @@ int main(int argc, const char** argv) {
 						//  I:  Di+1 = Di * 2 * (1 - De) * 2 * e
 						//  II: Di+1 = 2 * (1 - e)
 						
-						#define METHOD_I
-						// #define METHOD_II
+						// #define METHOD_I
+						#define METHOD_II
 						
 						#ifdef METHOD_I
 							if (error_d > 0)
@@ -195,16 +200,24 @@ int main(int argc, const char** argv) {
 						#endif
 						#ifdef METHOD_II
 							if (error_d > 0)
-								step[d][i][j] = step[d][i][j] * 2.0 * error_b;
+								if (error_b > 0.5)
+									step[d][i][j] *= 0.5;
+								else
+									step[d][i][j] *= 2.0;
 						#endif
 						
-						positive_probability[d][i][j] = positive_probability[d][i][j] * (1.0 + error_d);
+						if (step[d][i][j] < -0.25 * wD)
+							step[d][i][j] = -0.25 * wD;
+						else if (step[d][i][j] > 0.25 * wD)
+							step[d][i][j] = 0.25 * wD;
+						
+						positive_probability[d][i][j] *= (error_d > 0.0 && positive_step[d][i][j]) ? 0.5 : 2.0;
 						if (positive_probability[d][i][j] > 1.0)
 							positive_probability[d][i][j] = 1.0;
 					}
 					
 					// Generate random direction & step on it
-					if (probably_true(positive_probability[d][i][j]))
+					if (positive_step[d][i][j] = probably_true(positive_probability[d][i][j]))
 						network.W[d][i][j] += step[d][i][j];
 					else
 						network.W[d][i][j] -= step[d][i][j];
@@ -222,16 +235,24 @@ int main(int argc, const char** argv) {
 						#endif
 						#ifdef METHOD_II
 							if (error_d > 0)
-								offset_step[i][j] = offset_step[i][j] * 2.0 * error_b;
+								if (error_b > 0.5)
+									offset_step[i][j] *= 0.5;
+								else
+									offset_step[i][j] *= 2.0;
 						#endif
 						
-						positive_offset_probability[i][j] = positive_offset_probability[i][j] * (1.0 + error_d);
+						if (offset_step[i][j] < -0.25 * wD)
+							offset_step[i][j] = -0.25 * wD;
+						else if (offset_step[i][j] > 0.25 * wD)
+							offset_step[i][j] = 0.25 * wD;
+						
+						positive_offset_probability[i][j] *= (error_d > 0.0 && positive_offset_step[i][j]) ? 0.5 : 2.0;
 						if (positive_offset_probability[i][j] > 1.0)
 							positive_offset_probability[i][j] = 1.0;
 					}
 					
 					// Generate random direction & step on it
-					if (probably_true(positive_offset_probability[i][j]))
+					if (positive_offset_step[i][j] = probably_true(positive_offset_probability[i][j]))
 						network.offsets[i][j] += offset_step[i][j];
 					else
 						network.offsets[i][j] -= offset_step[i][j];
@@ -239,6 +260,26 @@ int main(int argc, const char** argv) {
 		
 		// Calculate error value after step (teach_set)
 		error_b = NNSpace::Common::calculate_approx_error(network, train_set, Ltype);
+		
+		// If error become larger, rollback
+		// Perform correction depending on probability
+		for (int d = 0; d < dimensions.size() - 1; ++d)
+			for (int i = 0; i < dimensions[d]; ++i)
+				for (int j = 0; j < dimensions[d + 1]; ++j) {
+					if (positive_step[d][i][j])
+						network.W[d][i][j] -= step[d][i][j];
+					else
+						network.W[d][i][j] += step[d][i][j];
+				}
+		
+		if (offsets)
+			for (int i = 0; i < dimensions.size() - 1; ++i)
+				for (int j = 0; j < dimensions[i + 1]; ++j) {
+					if (probably_true(positive_offset_probability[i][j]))
+						network.offsets[i][j] -= offset_step[i][j];
+					else
+						network.offsets[i][j] += offset_step[i][j];
+				}
 		
 		// Calculate error change speed
 		error_d = error_b - error_a;

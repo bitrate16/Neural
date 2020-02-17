@@ -257,7 +257,7 @@ namespace NNSpace {
 		}
 	
 		// Split Approx set
-		void split_approx_set(std::vector<std::vector<std::pair<double, double>>>& sets, std::vector<std::pair<double, double>>& set, int subset_size) {
+		void split_approx_set(std::vector<std::vector<std::pair<double, double>>>& sets, std::vector<std::pair<double, double>>& set, int subset_size, bool append_last = true) {
 			int set_count = set.size() / subset_size;
 			sets.resize(set_count);
 			
@@ -266,10 +266,12 @@ namespace NNSpace {
 				sets[i] = std::vector<std::pair<double, double>>(set.begin() + set_ind, set.begin() + set_ind + subset_size);
 				set_ind += subset_size;
 			}
+			if (set_count * subset_size < set.size())
+				sets.back().insert(sets.back().end(), set.begin() + set_count * subset_size, set.end());
 		};
 	
 		// Split Approx set
-		void split_approx_set(std::vector<std::vector<std::pair<std::vector<double>, double>>>& sets, std::vector<std::pair<std::vector<double>, double>>& set, int subset_size) {
+		void split_approx_set(std::vector<std::vector<std::pair<std::vector<double>, double>>>& sets, std::vector<std::pair<std::vector<double>, double>>& set, int subset_size, bool append_last = true) {
 			int set_count = set.size() / subset_size;
 			sets.resize(set_count);
 			
@@ -278,6 +280,8 @@ namespace NNSpace {
 				sets[i] = std::vector<std::pair<std::vector<double>, double>>(set.begin() + set_ind, set.begin() + set_ind + subset_size);
 				set_ind += subset_size;
 			}
+			if (set_count * subset_size < set.size())
+				sets.back().insert(sets.back().end(), set.begin() + set_count * subset_size, set.end());
 		};
 		
 		// Split Approx set 2^i
@@ -465,13 +469,13 @@ namespace NNSpace {
 				return 0;
 			
 			std::vector<double> input(1);
-			std::vector<double> output;
+			std::vector<double> output(1);
 			
 			long double error = 0;
 			
 			for (int i = 0; i < set.size(); ++i) {
 				input[0] = set[i].first;
-				output   = net.run(input);
+				net.run(input, output);
 				
 				long double dv = set[i].second - output[0];
 				
@@ -494,12 +498,12 @@ namespace NNSpace {
 			if (set.size() == 0)
 				return 0;
 			
-			std::vector<double> output;
+			std::vector<double> output(1);
 			
 			long double error = 0;
 			
 			for (int i = 0; i < set.size(); ++i) {
-				output   = net.run(set[i].first);
+				net.run(set[i].first, output);
 				
 				long double dv = set[i].second - output[0];
 				if (Ltype == 1)
@@ -520,13 +524,13 @@ namespace NNSpace {
 				return 0;
 			
 			std::vector<double> input(1);
-			std::vector<double> output;
+			std::vector<double> output(1);
 			
 			long double error_max = 0;
 			
 			for (int i = 0; i < set.size(); ++i) {
 				input[0] = set[i].first;
-				output   = net.run(input);
+				net.run(input, output);
 				
 				long double dv = std::fabs(set[i].second - output[0]);
 				if (error_max < dv)
@@ -542,12 +546,12 @@ namespace NNSpace {
 			if (set.size() == 0)
 				return 0;
 			
-			std::vector<double> output;
+			std::vector<double> output(1);
 			
 			long double error_max = 0;
 			
 			for (int i = 0; i < set.size(); ++i) {
-				output   = net.run(set[i].first);
+				net.run(set[i].first, output);
 				
 				long double dv = std::fabs(set[i].second - output[0]);
 				if (error_max < dv)

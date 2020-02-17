@@ -136,6 +136,31 @@ namespace NNSpace {
 			return output;
 		};
 		
+		void run(const std::vector<double>& input, std::vector<double>& output) {
+			std::vector<double> middle(dimensions.middle);
+			
+			// input -> middle
+			for (int j = 0; j < dimensions.middle; ++j) {
+				middle[j] = enable_offsets ? middle_offset[j] : enable_offsets;
+				
+				for (int i = 0; i < dimensions.input; ++i)
+					middle[j] += input[i] * W01[i][j];
+				
+				// After summary, activate
+				middle[j] = middle_act->process(middle[j]);
+			}
+			
+			// middle -> output
+			for (int j = 0; j < dimensions.output; ++j) {
+				output[j] = enable_offsets ? output_offset[j] : 0.0;
+				
+				for (int i = 0; i < dimensions.middle; ++i)
+					output[j] += middle[i] * W12[i][j];
+				
+				output[j] = output_act->process(output[j]);
+			}
+		};
+		
 		void serialize(std::ostream& os) {
 			// Format:
 			// 1. number of layers
