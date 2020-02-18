@@ -242,5 +242,16 @@ namespace NNSpace {
 			
 			return 1;
 		};
+	
+		// Makes a full copy of the network
+		inline void copy_to(MLNet& dest) {
+			dest.enable_offsets = enable_offsets;
+			dest.dimensions     = dimensions;
+			dest.offsets        = offsets;
+			dest.W              = W;
+			dest.activators.resize(activators.size());
+			for (int i = 0; i < activators.size(); ++i)
+				dest.activators[i] = activators[i]->clone();
+		};
 	};
 };

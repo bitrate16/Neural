@@ -250,5 +250,17 @@ namespace NNSpace {
 			
 			return 1;
 		};
+
+		// Makes a full copy of the network
+		inline void copy_to(SLNet& dest) {
+			dest.enable_offsets = enable_offsets;
+			dest.middle_offset  = middle_offset;
+			dest.output_offset  = output_offset;
+			dest.middle_act     = middle_act->clone();
+			dest.output_act     = output_act->clone();
+			dest.dimensions     = dimensions;
+			dest.W01            = W01;
+			dest.W12            = W12;
+		};
 	};
 };

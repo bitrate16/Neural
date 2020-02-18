@@ -348,7 +348,7 @@ namespace NNSpace {
 		};
 
 		// Write networks
-		bool write_networks(std::vector<NNSpace::MLNet>& net, std::string& out_dir) {
+		bool write_networks(std::vector<NNSpace::MLNet>& net, const std::string& out_dir) {
 			std::error_code ec;
 			if (!std::experimental::filesystem::create_directories(out_dir, ec) && ec)
 				return 0;
@@ -371,7 +371,7 @@ namespace NNSpace {
 		};
 		
 		// Read networks
-		bool read_networks(std::vector<NNSpace::MLNet>& net, std::string& in_dir, int count) {
+		bool read_networks(std::vector<NNSpace::MLNet>& net, const std::string& in_dir, int count) {
 			net.resize(count);
 			
 			for (int i = 0; i < count; ++i) {
@@ -391,7 +391,7 @@ namespace NNSpace {
 		};
 		
 		// Write single ordered network
-		bool write_network(NNSpace::MLNet& net, std::string& out_dir, int i) {
+		bool write_network(NNSpace::MLNet& net, const std::string& out_dir, int i) {
 			std::error_code ec;
 			if (!std::experimental::filesystem::create_directories(out_dir, ec) && ec)
 				return 0;
@@ -412,7 +412,7 @@ namespace NNSpace {
 		};
 		
 		// Read single ordered network
-		bool read_network(NNSpace::MLNet& net, std::string& in_dir, int i) {
+		bool read_network(NNSpace::MLNet& net, const std::string& in_dir, int i) {
 			std::ifstream is;
 			std::string filename = in_dir + "/network_" + std::to_string(i) + ".neetwook";
 			
@@ -428,7 +428,7 @@ namespace NNSpace {
 		};
 	
 		// Write single network
-		bool write_network(NNSpace::MLNet& net, std::string& out_file) {
+		bool write_network(NNSpace::MLNet& net, const std::string& out_file) {
 			std::ofstream of;
 			of.open(out_file);
 			
@@ -444,7 +444,7 @@ namespace NNSpace {
 		};
 		
 		// Read single network
-		bool read_network(NNSpace::MLNet& net, std::string& in_file) {
+		bool read_network(NNSpace::MLNet& net, const std::string& in_file) {
 			std::ifstream is;
 			is.open(in_file);
 			
