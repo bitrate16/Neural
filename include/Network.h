@@ -105,7 +105,7 @@ namespace NNSpace {
 		}
 	};
 	
-	inline static NetworkFunction* getActivatorByName(const std::string* name) {
+	inline static NetworkFunction* getActivatorByName(const std::string& name) {
 		if (name == "Linear")          return new NNSpace::Linear();
 		if (name == "Sigmoid")         return new NNSpace::Sigmoid();
 		if (name == "BipolarSigmoid")  return new NNSpace::BipolarSigmoid();

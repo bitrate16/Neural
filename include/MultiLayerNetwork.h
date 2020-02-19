@@ -240,6 +240,9 @@ namespace NNSpace {
 				
 			is >> enable_offsets;
 			
+			if (is.fail())
+				return 0;
+			
 			return 1;
 		};
 	
