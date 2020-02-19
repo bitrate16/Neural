@@ -519,7 +519,7 @@ namespace NNSpace {
 		};
 	
 		// Calculate max error on the output layer
-		long double calculate_approx_error_max(NNSpace::MLNet& net, std::vector<std::pair<double, double>>& set) {
+		long double calculate_approx_error_max(NNSpace::MLNet& net, std::vector<std::pair<double, double>>& set, int Ltype = 1) {
 			if (set.size() == 0)
 				return 0;
 			
@@ -533,6 +533,8 @@ namespace NNSpace {
 				net.run(input, output);
 				
 				long double dv = std::fabs(set[i].second - output[0]);
+				if (Ltype == 2)
+					dv *= dv;
 				if (error_max < dv)
 					error_max = dv;
 			}
@@ -554,6 +556,8 @@ namespace NNSpace {
 				net.run(set[i].first, output);
 				
 				long double dv = std::fabs(set[i].second - output[0]);
+				if (Ltype == 2)
+					dv *= dv;
 				if (error_max < dv)
 					error_max = dv;
 			}

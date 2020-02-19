@@ -255,7 +255,7 @@ int main(int argc, const char** argv) {
 		if (args["--log"]->array_contains("TEST_ERROR_AVG"))
 			std::cout << "TEST_ERROR=" << errors_b[0] << std::endl;
 		if (args["--log"]->array_contains("TEST_ERROR_MAX")) 
-			std::cout << "TEST_ERROR_MAX=" << NNSpace::Common::calculate_approx_error_max(networks[0], test_set) << std::endl;
+			std::cout << "TEST_ERROR_MAX=" << NNSpace::Common::calculate_approx_error_max(networks[0], test_set, Ltype) << std::endl;
 	}
 	
 	// Write network to file

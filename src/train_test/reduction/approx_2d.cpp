@@ -13,20 +13,18 @@
  * Warning: Using Linear or ReLU activator may lead to double type overflow
  * Arguments:
  *  --network=%      Path to the network
- *  --mnist=%        Input set
- *  --test_size=%    Amount of digits taken from test set
- *  --test_offset=%  Offset value for test set
+ *  --test=%         Input set
  *  --output=%       Output file for the network
  *  --Ltype=%        L1 or L2
  *  --error_dev=%    Max error deviation
  *  --print          Enable informational printing
- *  --log=[%]        Log type (REDUCTION_TIME, REDUCTION_ITERATIONS, TEST_ERROR_AVG, TEST_ERROR_MAX, TEST_MATCH, RECALC_ITERATIONS, NEURONS_REMOVED)
+ *  --log=[%]        Log type (REDUCTION_TIME, REDUCTION_ITERATIONS, TEST_ERROR_AVG, TEST_ERROR_MAX, RECALC_ITERATIONS, NEURONS_REMOVED)
  *
  * Make:
- * g++ src/train_test/reduction/mnist.cpp -o bin/reduction_mnist -O3 --std=c++17 -Iinclude -lstdc++fs
+ * g++ src/train_test/reduction/approx_2d.cpp -o bin/reduction_approx_2d -O3 --std=c++17 -Iinclude -lstdc++fs
  *
  * Example:
- * ./bin/reduction_mnist --test_size=1000 --print --error_dev=0.1 --mnist=data/mnist --network=networks/mnist_test.neetwook --output=networks/mnist_test_min.neetwook --log=[REDUCTION_TIME,TEST_ERROR_AVG,TEST_ERROR_MAX,REDUCTION_ITERATIONS,TEST_MATCH,RECALC_ITERATIONS,NEURONS_REMOVED]
+ * ./bin/reduction_approx_2d --print --error_dev=0.1 --test=data/sin_1000.mset --network=networks/approx_sin.neetwook --output=networks/approx_sin_min.neetwook --log=[REDUCTION_TIME,TEST_ERROR_AVG,TEST_ERROR_MAX,REDUCTION_ITERATIONS,TEST_MATCH,RECALC_ITERATIONS,NEURONS_REMOVED]
  */
 
 // Simply prints out the message and exits.
@@ -47,20 +45,13 @@ int main(int argc, const char** argv) {
 	// Read set
 	std::string mnist_path = args["--mnist"] && args["--mnist"]->is_string() ? args["--mnist"]->string() : "mnist";
 	
-	// Read set
-	mnist::MNIST_dataset<std::vector, std::vector<uint8_t>, uint8_t> set;
-	if (!NNSpace::Common::load_mnist(set, mnist_path))
-		exit_message("Set " + mnist_path + " not found");
+	// Reap input
+	std::string test = args["--test"] && args["--test"]->is_string() ? args["--test"]->string() : "test.mset";
 	
-	// Parse limit properties
-	int test_size = args["--test_size"]  ? args["--test_size"]->get_integer()  : -1;
-	int test_offset = args["--test_offset"]  ? args["--test_offset"]->get_integer()  : 0;
-	
-	// Validate values
-	if (test_size == -1)
-		test_size = set.test_images.size();
-	if (test_offset < 0 || test_size <= 0 || test_offset + test_size > set.test_images.size())
-		exit_message("Invalid test offset or size");
+	// Read train set data
+	std::vector<std::pair<double, double>> test_set;
+	if (!NNSpace::Common::read_approx_set(test_set, test))
+		exit_message("Set " + test + " not found");
 	
 	double error_dev = (args["--error_dev"] && args["--error_dev"]->is_real()) ? args["--error_dev"]->real() : 0.0;
 	
@@ -84,7 +75,7 @@ int main(int argc, const char** argv) {
 	unsigned long neurons_removed = 0;
 	
 	// Calculate initial value
-	double initial_match = NNSpace::Common::calculate_mnist_match(network, set, test_offset, test_size);
+	double initial_error = NNSpace::Common::calculate_approx_error(network, test_set, Ltype);
 	
 	// Looping condition
 	bool condition = 1;
@@ -109,10 +100,10 @@ int main(int argc, const char** argv) {
 		double offset_store;
 		
 		// Minimal error value & neuron location
-		double max_match = 0.0;
-		int max_match_i = -1, max_match_j = -1;
+		double min_error = std::numeric_limits<double>::max();
+		int min_error_i = -1, min_error_j = -1;
 		
-		// Calculate Ri as match value without i neuron
+		// Calculate Ri as error value without i neuron
 		std::vector<std::vector<double>> R(network.dimensions.size() - 2);
 		for (int i = 0; i < network.dimensions.size() - 2; ++i) {
 			R[i].resize(network.dimensions[i + 1]);
@@ -150,13 +141,13 @@ int main(int argc, const char** argv) {
 				// Remove offset
 				network.offsets[i].erase(network.offsets[i].begin() + j);
 				
-				R[i][j] = NNSpace::Common::calculate_mnist_match(network, set, test_offset, test_size);
+				R[i][j] = NNSpace::Common::calculate_approx_error(network, test_set, Ltype);
 				
 				// Record maximal match value
-				if (max_match <= R[i][j]) {
-					max_match = R[i][j];
-					max_match_i = i;
-					max_match_j = j;
+				if (min_error >= R[i][j]) {
+					min_error = R[i][j];
+					min_error_i = i;
+					min_error_j = j;
 				}
 				
 				// Restore
@@ -175,32 +166,32 @@ int main(int argc, const char** argv) {
 		}
 		
 		if (print_flag) {
-			std::cout << "Initial match = " << initial_match << std::endl;
-			std::cout << "Iteration maximal match = " << max_match << std::endl;
+			std::cout << "Initial error = " << initial_error << std::endl;
+			std::cout << "Iteration minimal error = " << min_error << std::endl;
 		}
 		
 		// Remove neuron[i][j] if (initial - R[i][j]) < error_dev
-		if (initial_match - max_match <= error_dev) {
+		if (min_error - initial_error <= error_dev) {
 			if (print_flag)
-				std::cout << "Iteration match += " << (max_match - initial_match) << std::endl;
+				std::cout << "Iteration error += " << (initial_error - min_error) << std::endl;
 			
 			// Erase
-			--network.dimensions[max_match_i + 1];
+			--network.dimensions[min_error_i + 1];
 			
 			// Remove incoming
-			for (int a = 0; a < network.dimensions[max_match_i]; ++a)
-				network.W[max_match_i][a].erase(network.W[max_match_i][a].begin() + max_match_j);
+			for (int a = 0; a < network.dimensions[min_error_i]; ++a)
+				network.W[min_error_i][a].erase(network.W[min_error_i][a].begin() + min_error_j);
 			
 			// Remove outcoming
-			network.W[max_match_i + 1].erase(network.W[max_match_i + 1].begin() + max_match_j);
+			network.W[min_error_i + 1].erase(network.W[min_error_i + 1].begin() + min_error_j);
 			
 			// Remove offset
-			network.offsets[max_match_i].erase(network.offsets[max_match_i].begin() + max_match_j);
+			network.offsets[min_error_i].erase(network.offsets[min_error_i].begin() + min_error_j);
 			
 			++neurons_removed;
 			
 			if (print_flag)
-				std::cout << "Iteration new layer [" << (max_match_i + 1) << "] size: " << network.dimensions[max_match_i + 1] << std::endl;
+				std::cout << "Iteration new layer [" << (min_error_i + 1) << "] size: " << network.dimensions[min_error_i + 1] << std::endl;
 		} else 
 			condition = false;
 	}
@@ -219,12 +210,10 @@ int main(int argc, const char** argv) {
 			std::cout << "RECALC_ITERATIONS=" << recalculation_iterations << std::endl;
 		if (args["--log"]->array_contains("REDUCTION_ITERATIONS"))
 			std::cout << "REDUCTION_ITERATIONS=" << reduction_iterations << std::endl;
-		if (args["--log"]->array_contains("TEST_MATCH")) 
-			std::cout << "TEST_MATCH=" << NNSpace::Common::calculate_mnist_match(network, set, test_offset, test_size) << std::endl;
 		if (args["--log"]->array_contains("TEST_ERROR_AVG")) 
-			std::cout << "TEST_ERROR_AVG=" << NNSpace::Common::calculate_mnist_error(network, set, Ltype, test_offset, test_size) << std::endl;
+			std::cout << "TEST_ERROR_AVG=" << NNSpace::Common::calculate_approx_error(network, test_set, Ltype) << std::endl;
 		if (args["--log"]->array_contains("TEST_ERROR_MAX")) 
-			std::cout << "TEST_ERROR_MAX=" << NNSpace::Common::calculate_mnist_error_max(network, set, Ltype, test_offset, test_size) << std::endl;
+			std::cout << "TEST_ERROR_MAX=" << NNSpace::Common::calculate_approx_error_max(network, test_set, Ltype) << std::endl;
 		if (args["--log"]->array_contains("NEURONS_REMOVED")) 
 			std::cout << "NEURONS_REMOVED=" << neurons_removed << std::endl;
 	}
