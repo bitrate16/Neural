@@ -4,9 +4,10 @@
 
 #pragma once
 
-#include <vector>
-#include <cmath>
 #include <iostream>
+#include <vector>
+#include <string>
+#include <cmath>
 
 namespace NNSpace {
 
@@ -93,17 +94,26 @@ namespace NNSpace {
 		virtual NetworkFunction* clone() { return new TanH(); };
 	};
 	
-	NetworkFunction* getActivatorByType(ActivatorType type) {
+	inline static NetworkFunction* getActivatorByType(ActivatorType type) {
 		switch (type) {
 			case ActivatorType::LINEAR:          return new Linear();
 			case ActivatorType::SIGMOID:         return new Sigmoid();
 			case ActivatorType::BIPOLAR_SIGMOID: return new BipolarSigmoid();
 			case ActivatorType::RELU:            return new ReLU();
 			case ActivatorType::TANH:            return new TanH();
-			default: throw std::runtime_error("Unsupported activator type");
+			default: return new Linear();
 		}
 	};
-
+	
+	inline static NetworkFunction* getActivatorByName(const std::string* name) {
+		if (name == "Linear")          return new NNSpace::Linear();
+		if (name == "Sigmoid")         return new NNSpace::Sigmoid();
+		if (name == "BipolarSigmoid")  return new NNSpace::BipolarSigmoid();
+		if (name == "ReLU")            return new NNSpace::ReLU();
+		if (name == "TanH")            return new NNSpace::TanH();
+		return new Linear();
+	};
+	
 	class Network {
 		
 	public:
